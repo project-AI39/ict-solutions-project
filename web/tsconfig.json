@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",               // トランスパイル出力ターゲット
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,                   // JS/TS 混在段階的移行を許可
+    "skipLibCheck": true,              // ビルド高速化 (型精度より速度優先)
+    "strict": true,                    // 型安全フル有効
+    "noEmit": true,                    // Next.js が出力管理 -> TS は型チェック専用
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",    // Turbopack/次世代解決戦略
+    "resolveJsonModule": true,
+    "isolatedModules": true,           // Babel/各種トランスパイラ互換安全策
+    "jsx": "preserve",                // Next.js 側で最終処理
+    "incremental": true,               // 増分ビルドキャッシュ
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./src/*"] }  // 絶対パスエイリアス
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

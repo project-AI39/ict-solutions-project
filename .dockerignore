@@ -1,0 +1,36 @@
+### .dockerignore
+# 目的: ビルドコンテキストを最小化しキャッシュ効率を向上
+
+# VCS / メタ
+.git
+.gitignore
+
+# 依存物 / ビルド成果物
+node_modules
+**/node_modules
+web/.next
+out
+build
+coverage
+
+# 環境ファイル (例外: 雛形)
+.env
+.env.*
+!.env.example
+
+# ログ / 余計なファイル
+*.log
+**/.DS_Store
+**/Thumbs.db
+
+# Docker 関連
+# ルート Dockerfile / compose はビルド引数解析や build context 参照のため除外しない
+# (マルチステージ追加時に COPY したい場合があるため)
+
+# Prisma SQLite (万一生成された場合)
+**/*.sqlite
+
+# OS / Editor
+.vscode
+.idea
+*.swp

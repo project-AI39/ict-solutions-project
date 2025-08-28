@@ -1,0 +1,41 @@
+version: "3.9"
+
+# 単一コンテナ(開発フェーズ)で: Next.js + PostgreSQL + Caddy を同居させる最小構成
+# 将来スケール/本番化では app と db を分離予定
+services:
+  app:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+    container_name: ict-solutions-project
+    working_dir: /workspace
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    environment:
+      # --- DB 初期化関連 (entrypoint.sh が参照) ---
+      DB_NAME: appdb       # 初期作成 DB 名
+      DB_USER: appuser     # アプリ用ロール
+      DB_PASS: appsecret   # 上記ロール初期パスワード (開発用)
+      POSTGIS_ENABLE: "1"  # 0 で PostGIS 拡張スキップ
+      # CHOKIDAR_USEPOLLING: "1" # Windows/NFS で監視が不安定な場合のみ有効化
+      # DOMAIN: myapp.example    # 本番 HTTPS ドメイン (Caddy 用)
+      # DATABASE_URL: ""         # 未指定ならエントリポイントで自動組立
+    volumes:
+      - .:/workspace
+      - pgdata:/var/lib/postgresql/16/main   # PostgreSQL データ永続化
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro # Caddy 設定ホットリロード
+    ports:
+      - "3000:3000" # Next.js (dev)
+      - "80:80"     # HTTP (Caddy)
+      - "443:443"   # HTTPS (Caddy)
+      - "5432:5432" # PostgreSQL 直接接続 (psql/GUI)
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/ || exit 1"] # Next.js が応答すれば OK
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s   # 初回依存 (DB 初期化 / npm install) 猶予
+
+volumes:
+  pgdata: {}

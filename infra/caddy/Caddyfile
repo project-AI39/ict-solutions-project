@@ -1,0 +1,73 @@
+{
+    # Global options. Email for ACME (Let's Encrypt) issuance (必要なら変更)
+    email admin@localhost
+    # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory  # 本番前テスト用 (staging)
+    # 若干のデフォルトタイムアウト等は必要になればここに記載
+}
+
+# 1) Production domain (自動 HTTPS & HSTS)
+#    DOMAIN 環境変数必須。未設定でコンテナ起動する場合はこのブロックをコメントアウトするか DOMAIN をダミー設定しないこと。
+#    (空文字だと Caddyfile パースエラーになるため注意)
+{$DOMAIN} {
+    encode gzip zstd
+    header {
+        # セキュリティヘッダ (HTTPS のみ)。HSTS は初回短め→延長が推奨。ここでは 1 年。
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer-when-downgrade
+    X-XSS-Protection "0"            # 近代ブラウザでは不要/非推奨化, 明示無効
+    Permissions-Policy "geolocation=(), camera=(), microphone=()"
+    Cross-Origin-Opener-Policy same-origin
+    Cross-Origin-Embedder-Policy require-corp
+    Cross-Origin-Resource-Policy same-origin
+    # Content-Security-Policy はアプリに合わせて適切に (例は緩め)
+    # Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    }
+
+    # 開発中は Next.js dev server に一任するため静的ファイル個別配信を無効化 (SVG 404 回避)
+    # 本番最適化時は root + file_server + try_files で再導入予定
+
+    reverse_proxy 127.0.0.1:3000 {
+        flush_interval -1
+    }
+
+    log {
+        output stdout
+        level INFO
+    }
+}
+
+# 2) Local development (self-signed 内部 CA) localhost HTTPS
+https://localhost {
+    tls internal
+    encode gzip zstd
+    header {
+        # ローカルでは HSTS (preload) を付けない (ブラウザキャッシュ影響防止)
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer-when-downgrade
+    Cross-Origin-Opener-Policy same-origin
+    Cross-Origin-Embedder-Policy require-corp
+    Cross-Origin-Resource-Policy same-origin
+    }
+
+    # (dev) 静的直配信なし
+
+    reverse_proxy 127.0.0.1:3000 {
+        flush_interval -1
+    }
+
+    log {
+        output stdout
+        level INFO
+    }
+}
+
+# 3) HTTP → HTTPS redirect (localhost & production domain)
+http://{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} 301
+}
+http://localhost {
+    redir https://localhost{uri} 301
+}

@@ -1,0 +1,21 @@
+// Prisma schema (initial minimal setup)
+// 役割: DB モデル定義 + マイグレーション基盤
+//   - 実運用向け: イベント / ユーザ / タグ / 位置情報 (PostGIS) などを段階的に追加
+//   - 地理カラム追加例:  geometry などは PostgreSQL 拡張 (PostGIS) 有効化後に `Unsupported("geometry")` 型または prisma-postgres-extensions を活用
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Example model (試作用。不要になれば削除 / 拡張)
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
