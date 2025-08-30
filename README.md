@@ -19,3 +19,4 @@ docker compose up -d --build
 - プロジェクト概要: `docs/プロジェクト内容.md`
 - 採用技術: `docs/採用技術.md`
 - 環境構築: `docs/環境構築手順.md`
+- コントリビューションガイド: `docs/CONTRIBUTING.md`
