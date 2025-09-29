@@ -18,7 +18,7 @@ WORKDIR /workspace
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-    ca-certificates curl gnupg lsb-release git bash build-essential; \
+    ca-certificates curl gnupg lsb-release git bash build-essential dos2unix; \
     rm -rf /var/lib/apt/lists/*
 
 # Node.js (NodeSource) リポジトリ追加 (22.x: 2025 時点 Active / LTS 移行済)
@@ -50,17 +50,17 @@ RUN set -eux; \
 #   単一コンテナ開発用であり本番運用ではコンテナ分離推奨
 # ------------------------------------------------------------
 RUN set -eux; \
-        apt-get update; \
-        apt-get install -y --no-install-recommends postgresql-16 postgresql-client-16 postgresql-contrib-16; \
-        rm -rf /var/lib/apt/lists/*; \
-        sed -i 's/^#port = 5432/port = 5432/' /etc/postgresql/16/main/postgresql.conf; \
-        # 開発用: 外部（コンテナ外）接続許可（本番では専用 DB コンテナ推奨） listen_addresses 行のコメント/未コメント両方を * に書き換え
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql-16 postgresql-client-16 postgresql-contrib-16; \
+    rm -rf /var/lib/apt/lists/*; \
+    sed -i 's/^#port = 5432/port = 5432/' /etc/postgresql/16/main/postgresql.conf; \
+    # 開発用: 外部（コンテナ外）接続許可（本番では専用 DB コンテナ推奨） listen_addresses 行のコメント/未コメント両方を * に書き換え
     sed -i "s/^#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/16/main/postgresql.conf || true; \
     sed -i "s/^listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/16/main/postgresql.conf || true; \
-        # host all all all の既存設定重複を避けるため先頭一致で確認 (末尾スペース差分回避)
-        grep -Eq "^host[[:space:]]+all[[:space:]]+all[[:space:]]+all[[:space:]]+scram-sha-256" /etc/postgresql/16/main/pg_hba.conf || echo 'host all all all scram-sha-256' >> /etc/postgresql/16/main/pg_hba.conf; \
-        sed -i 's|^#logging_collector = off|logging_collector = on|' /etc/postgresql/16/main/postgresql.conf; \
-        ln -s /usr/lib/postgresql/16/bin/postgres /usr/local/bin/postgres
+    # host all all all の既存設定重複を避けるため先頭一致で確認 (末尾スペース差分回避)
+    grep -Eq "^host[[:space:]]+all[[:space:]]+all[[:space:]]+all[[:space:]]+scram-sha-256" /etc/postgresql/16/main/pg_hba.conf || echo 'host all all all scram-sha-256' >> /etc/postgresql/16/main/pg_hba.conf; \
+    sed -i 's|^#logging_collector = off|logging_collector = on|' /etc/postgresql/16/main/postgresql.conf; \
+    ln -s /usr/lib/postgresql/16/bin/postgres /usr/local/bin/postgres
 
 # PostGIS (地理空間拡張) - 開発時点で有効化してもオーバーヘッドは軽微
 RUN set -eux; \
@@ -88,7 +88,8 @@ RUN set -eux; echo "[versions]"; node -v; npm -v; postgres --version; psql --ver
 # Caddyfile / Entrypoint (infra 下に移動したパスを利用)
 COPY infra/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY infra/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Windows 由来の CRLF が混入しても動くよう保険として LF 化
+RUN dos2unix /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 80 443 3000 5432
 # HEALTHCHECK: PostgreSQL と Next.js (3000) の疎通 (Compose でも定義しているためここは任意)
