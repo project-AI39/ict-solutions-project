@@ -6,7 +6,7 @@
 
 ```powershell
 git clone <REPO_URL>
-docker compose up -d --build
+docker compose up --build
 ```
 
 アクセス:
@@ -14,7 +14,33 @@ docker compose up -d --build
 - http://localhost:3000 (Next.js dev サーバ)
 - https://localhost (Caddy 経由)
 
-##  アーキテクチャ環境図
+## 起動ログの例と成功のサイン
+
+初回は依存関係のインストールや DB 初期化が走るため、数分以上かかる場合があります。以下のようなログが出れば「起動成功」です。
+
+- Prisma のマイグレーションが完了する: `[prisma] migrate deploy done`
+- Next.js のアドレスが表示される: `Local:        http://localhost:3000`
+- Next.js の準備完了が出る: `✓ Ready in …s`
+- ブラウザアクセス後に `GET / 200` が記録される
+
+例（抜粋）:
+
+```
+ict-solutions-project  | [postgres] ready
+ict-solutions-project  | [prisma] migrate deploy done
+ict-solutions-project  |    ▲ Next.js 15.5.2 (Turbopack)
+ict-solutions-project  |    - Local:        http://localhost:3000
+ict-solutions-project  |    - Network:      http://0.0.0.0:3000
+ict-solutions-project  |  ✓ Ready in 44.8s
+ict-solutions-project  |  GET / 200 in 1702ms
+```
+
+注意:
+
+- この手順はフォアグラウンドでログが流れ続けます。ターミナルを閉じたり Ctrl+C すると停止します。
+- 停止したい場合は別ターミナルから `docker compose down` を実行してください。
+
+## アーキテクチャ環境図
 
 ![アーキテクチャ環境図](docs/アーキテクチャ環境図.png)
 
