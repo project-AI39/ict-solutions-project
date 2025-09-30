@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -H 0.0.0.0",
-    "build": "prisma generate && next build --turbopack",
+    "dev": "WATCHPACK_POLLING=true next dev -H 0.0.0.0",
+    "dev:turbopack": "next dev --turbopack -H 0.0.0.0",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -12,7 +13,7 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "prisma:migrate": "prisma migrate dev",
-    "analyze": "ANALYZE=1 next build --turbopack"
+    "analyze": "ANALYZE=1 next build"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
