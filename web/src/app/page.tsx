@@ -1,41 +1,54 @@
-// MUI のアイコン表示テスト用ページ
 "use client";
 
+import { useState } from "react";
+
+import "leaflet/dist/leaflet.css";
+import { MapContainer, TileLayer } from "react-leaflet";
+
+import Box from "@mui/material/Box";
+import BottomNavigation from "@mui/material/BottomNavigation";
+import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import Paper from "@mui/material/Paper";
+
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import HomeIcon from "@mui/icons-material/Home";
+import PersonIcon from "@mui/icons-material/Person";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import PersonIcon from "@mui/icons-material/Person";
 
 export default function Home() {
+  const [value, setValue] = useState(0);
+
+  const navHeight = 64; // px
+
   return (
-    <main style={{ width: "100%", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <HomeIcon style={{ fontSize: 48 }} />
-          <div style={{ fontSize: 12, marginTop: 6 }}>Home</div>
-        </div>
+    <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
+      {/* Map area: leave space for bottom nav so it isn't covered */}
+      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: `calc(100vh - ${navHeight}px)` }}>
+        <MapContainer center={[35.681236, 139.767125]} zoom={10} style={{ width: "100%", height: "100%" }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
+        </MapContainer>
+      </Box>
 
-        <div style={{ textAlign: "center" }}>
-          <SearchIcon style={{ fontSize: 48 }} />
-          <div style={{ fontSize: 12, marginTop: 6 }}>Search</div>
-        </div>
-
-        <div style={{ textAlign: "center" }}>
-          <SettingsIcon style={{ fontSize: 48 }} />
-          <div style={{ fontSize: 12, marginTop: 6 }}>Settings</div>
-        </div>
-
-        <div style={{ textAlign: "center" }}>
-          <FavoriteIcon style={{ fontSize: 48, color: "#e53935" }} />
-          <div style={{ fontSize: 12, marginTop: 6 }}>Favorite</div>
-        </div>
-
-        <div style={{ textAlign: "center" }}>
-          <PersonIcon style={{ fontSize: 48 }} />
-          <div style={{ fontSize: 12, marginTop: 6 }}>Profile</div>
-        </div>
-      </div>
-    </main>
+      {/* Bottom navigation - fixed to bottom, mobile-first */}
+      <Box sx={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+        <Paper elevation={8} sx={{ position: "relative", zIndex: 1200 }}>
+          <BottomNavigation
+            showLabels
+            value={value}
+            onChange={(event, newValue) => {
+              setValue(newValue);
+            }}
+            sx={{ height: navHeight }}
+          >
+            <BottomNavigationAction label="ホーム" icon={<HomeIcon />} />
+            <BottomNavigationAction label="検索" icon={<SearchIcon />} />
+            <BottomNavigationAction label="投稿" icon={<AddCircleOutlineIcon />} />
+            <BottomNavigationAction label="ユーザー" icon={<PersonIcon />} />
+            <BottomNavigationAction label="設定" icon={<SettingsIcon />} />
+          </BottomNavigation>
+        </Paper>
+      </Box>
+    </Box>
   );
 }
