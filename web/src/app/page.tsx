@@ -14,12 +14,13 @@ import PersonIcon from "@mui/icons-material/Person";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 
+const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
+
 export default function Home() {
   const [value, setValue] = useState(0);
 
   const navHeight = 64; // px
   const TokyoStation: [number, number] = [35.681236, 139.767125];
-  const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 
   return (
     <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
