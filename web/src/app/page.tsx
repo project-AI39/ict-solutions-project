@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer } from "react-leaflet";
+import dynamic from "next/dynamic";
 
 import Box from "@mui/material/Box";
 import BottomNavigation from "@mui/material/BottomNavigation";
@@ -20,14 +18,14 @@ export default function Home() {
   const [value, setValue] = useState(0);
 
   const navHeight = 64; // px
+  const TokyoStation: [number, number] = [35.681236, 139.767125];
+  const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 
   return (
     <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
       {/* Map area: leave space for bottom nav so it isn't covered */}
       <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: `calc(100vh - ${navHeight}px)` }}>
-        <MapContainer center={[35.681236, 139.767125]} zoom={10} style={{ width: "100%", height: "100%" }}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
-        </MapContainer>
+        <LeafletMap center={TokyoStation} zoom={15} />
       </Box>
 
       {/* Bottom navigation - fixed to bottom, mobile-first */}
