@@ -20,3 +20,50 @@ L.Icon.Default.mergeOptions({
 // 一部のバンドラ環境だと prototype の参照が壊れる場合があるため、
 // Marker に対して明示的に同じインスタンスを渡して安定表示させます。
 const DEFAULT_ICON = new L.Icon.Default();
+
+type ExtraProps = {
+    center: LatLngTuple;
+    zoom?: number;
+    className?: string;
+    style?: CSSProperties;
+    tileUrl?: string;
+    attribution?: string;
+    // Marker support
+    markers?: LeafletMarker[];
+};
+
+export type LeafletMarker = {
+    id?: string | number;
+    position: LatLngTuple;
+    title?: string;
+    popup?: ReactNode;
+    iconOptions?: IconOptions;
+};
+
+export type LeafletMapProps = Omit<MapContainerProps, "center" | "children"> & ExtraProps;
+
+function MarkerList({ markers }: { markers?: LeafletMarker[] }) {
+    if (!markers || markers.length === 0) return null;
+
+    return (
+        <>
+            {markers.map((m) => {
+                if (!Array.isArray(m.position) || m.position.length !== 2) return null;
+                const key = m.id ?? `${m.position[0]}_${m.position[1]}`;
+                return (
+                    <Marker key={key} position={m.position} title={m.title} icon={DEFAULT_ICON}>
+                        {m.popup ? <Popup>{m.popup}</Popup> : null}
+                    </Marker>
+                );
+            })}
+        </>
+    );
+}
+export default function LeafletMap({ center, zoom = 13, className, style, tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution = "&copy; OpenStreetMap contributors", markers, ...mapProps }: LeafletMapProps) {
+    return (
+        <MapContainer center={center} zoom={zoom} className={className} style={{ width: "100%", height: "100%", ...style }} {...mapProps}>
+            <TileLayer url={tileUrl} attribution={attribution} />
+            <MarkerList markers={markers} />
+        </MapContainer>
+    );
+}
