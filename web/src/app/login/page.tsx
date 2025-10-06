@@ -2,10 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Box,
+  TextField,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Typography,
+  IconButton,
+  InputAdornment,
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 export default function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -25,7 +37,6 @@ export default function LoginForm() {
 
     if (res.ok) {
       const data = await res.json();
-      // Remember Me に応じて保存方法を変更
       if (remember) localStorage.setItem("token", data.token);
       else sessionStorage.setItem("token", data.token);
 
@@ -36,76 +47,119 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white p-8 rounded-lg shadow-lg"
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100vh",
+        p: 3,
+        bgcolor: "#f5f5f5",
+      }}
+    >
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 400,
+          bgcolor: "white",
+          p: 4,
+          borderRadius: 2,
+          boxShadow: 3,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
       >
-        <div className="flex justify-center mb-4">
-          <img className="w-30 h-30 rounded-full" src="/login/icon.png" alt="アプリアイコン" />
-        </div>
+        <Box sx={{ mb: 3 }}>
+          <img
+            src="/login/icon.png"
+            alt="アプリアイコン"
+            style={{ width: 100, height: 100, borderRadius: "50%" }}
+          />
+        </Box>
 
-	
-        <h2 className="text-2xl font-bold mb-6 text-black text-center">ログイン</h2>
+        <Typography variant="h5" component="h2" mb={2} textAlign="center">
+          ログイン
+        </Typography>
 
-        {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+        {error && (
+          <Typography color="error" mb={2} textAlign="center">
+            {error}
+          </Typography>
+        )}
 
-        <input
-          type="text"
-          placeholder="ユーザー名"
+        <TextField
+          label="ユーザー名"
           value={username}
           onChange={(e) => {
             setUsername(e.target.value);
             setError("");
           }}
+          fullWidth
           required
-          className="w-full mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400 text-black"
+          margin="normal"
         />
 
-        <input
-          type="password"
-          placeholder="パスワード"
+        <TextField
+          label="パスワード"
+          type={showPw ? "text" : "password"}
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
             setError("");
           }}
+          fullWidth
           required
-          className="w-full mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400 text-black"
+          margin="normal"
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton onClick={() => setShowPw((v) => !v)} edge="end">
+                  {showPw ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
         />
-        <div className="flex justify-end text-sm text-blue-500 mb-4">
-          <a href="/forgot-password" className="hover:underline">
+
+        <Box sx={{ alignSelf: "flex-end", mb: 2 }}>
+          <a href="/forgot-password" style={{ textDecoration: "underline", color: "#1976d2" }}>
             パスワードをお忘れですか？
           </a>
-	</div>
+        </Box>
 
-        {/* Remember Me */}
-        <label className="flex items-center mb-6 text-sm text-gray-600">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-            className="mr-2"
-          />
-          ログイン状態を保存する
-        </label>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+          }
+          label="ログイン状態を保存する"
+          sx={{ mb: 1 }}
+        />
 
-        <button
+        <Button
           type="submit"
+          variant="contained"
+          color="primary"
+          fullWidth
           disabled={loading}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded transition mb-4"
+          sx={{ mb: 2 }}
         >
           {loading ? "ログイン中..." : "ログイン"}
-        </button>
-	
-        <div className="flex flex-col items-center gap-2 mt-0">
-          <p className="text-black text-center">または</p>
-          <a href="/user_registerUI" className="text-blue-500 hover:underline text-center">
+        </Button>
+
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+          <Typography>または</Typography>
+          <a href="/user_registerUI" style={{ color: "#1976d2", textDecoration: "underline" }}>
             新規登録
           </a>
-        </div>
-
-      </form>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }
