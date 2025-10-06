@@ -1,4 +1,20 @@
-import Image from "next/image"; // トップページ (仮). 後で地図/イベント一覧に差し替え予定。
+"use client";
+
+import { useState } from "react";
+import dynamic from "next/dynamic";
+
+import Box from "@mui/material/Box";
+import BottomNavigation from "@mui/material/BottomNavigation";
+import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import Paper from "@mui/material/Paper";
+
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import HomeIcon from "@mui/icons-material/Home";
+import PersonIcon from "@mui/icons-material/Person";
+import SearchIcon from "@mui/icons-material/Search";
+import SettingsIcon from "@mui/icons-material/Settings";
+
+const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 
 export default function Home() {
   return (
