@@ -30,6 +30,7 @@ services:
       - "8888:8888"     # HTTP (Caddy)
       - "4430:4430"   # HTTPS (Caddy)
       - "5432:5432" # PostgreSQL 直接接続 (psql/GUI)
+      - "5555:5555" # ← Prisma Studio用
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/ || exit 1"] # Next.js が応答すれば OK
       interval: 30s

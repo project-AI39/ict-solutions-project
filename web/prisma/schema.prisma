@@ -19,3 +19,15 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Userテーブル
+model User {
+  id           String   @id // アカウント名（主キー）
+  passwordHash String   // ハッシュ化済みのパスワード
+  points       Int      @default(0) // 初期値0
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  joinedEventIds    String[] @default([])             // 参加したイベントのIDリスト
+  postedEventIds    String[] @default([])             // 投稿したイベントのIDリスト
+}
