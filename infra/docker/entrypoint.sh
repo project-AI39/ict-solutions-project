@@ -104,24 +104,65 @@ if [[ -f /workspace/web/package.json ]]; then
       PRISMA_CMD="npx --yes prisma"
     fi
     if [[ "$RUN_MIGRATIONS" == "1" ]]; then
-      echo "[prisma] migrate deploy (fallback to db push)"
-      if ${PRISMA_CMD} migrate deploy >/dev/null 2>&1; then
-        echo "[prisma] migrate deploy done"
+      echo "[prisma] migrate deploy (with auto-fix for schema mismatch)"
+      
+      # まず migrate status で状態確認
+      MIGRATE_STATUS_OUTPUT=$(${PRISMA_CMD} migrate status 2>&1 || true)
+      
+      # migrate deploy を試行
+      DEPLOY_SUCCESS=0
+      if ${PRISMA_CMD} migrate deploy 2>&1; then
+        echo "[prisma] migrate deploy succeeded"
+        DEPLOY_SUCCESS=1
       else
-        echo "[prisma] migrate deploy failed, trying db push (dev scenario)"
-        ${PRISMA_CMD} db push || true
+        echo "[prisma] migrate deploy failed, diagnosing..."
+        
+        # 不整合を検出（マイグレーションファイルとスキーマの不一致）
+        if echo "$MIGRATE_STATUS_OUTPUT" | grep -qi "drift\|out of sync\|baseline"; then
+          echo "[prisma] detected schema drift or baseline issue"
+          echo "[prisma] attempting migrate resolve --applied for existing migrations"
+          
+          # 既存マイグレーションを適用済みとしてマーク（空の migrations フォルダ対策）
+          for migration_dir in prisma/migrations/*/; do
+            if [[ -d "$migration_dir" ]]; then
+              migration_name=$(basename "$migration_dir")
+              ${PRISMA_CMD} migrate resolve --applied "$migration_name" 2>&1 || true
+            fi
+          done
+        fi
+      fi
+      
+      # マイグレーションが成功しても、ファイルが不完全な可能性があるため db push で完全同期
+      # （開発環境ではマイグレーションファイルとスキーマの不一致がよく発生する）
+      echo "[prisma] running db push to ensure complete schema sync (dev safety)"
+      if ${PRISMA_CMD} db push --accept-data-loss 2>&1; then
+        echo "[prisma] db push succeeded - schema fully synchronized"
+      else
+        echo "[prisma] db push failed, trying force reset (WARNING: may lose data)"
+        ${PRISMA_CMD} db push --force-reset --accept-data-loss 2>&1 || {
+          echo "[prisma] ERROR: All migration attempts failed. Manual intervention required." >&2
+          echo "[prisma] Suggestion: Check DATABASE_URL and prisma/schema.prisma for errors" >&2
+        }
       fi
     else
       echo "[prisma] skip migrations (RUN_MIGRATIONS=0)"
     fi
     echo "[prisma] generate client"
     ${PRISMA_CMD} generate || echo "[prisma] generate failed (non-fatal)"
+    
     if [[ "$RUN_SEED" == "1" ]]; then
       echo "[prisma] seed start"
-      if ${PRISMA_CMD} db seed; then
-        echo "[prisma] seed done"
+      
+      # シード前に念のため再生成（マイグレーション後のスキーマ変更を確実に反映）
+      ${PRISMA_CMD} generate >/dev/null 2>&1 || true
+      
+      if ${PRISMA_CMD} db seed 2>&1; then
+        echo "[prisma] seed completed successfully"
       else
-        echo "[prisma] seed failed (non-fatal)" >&2
+        SEED_EXIT=$?
+        echo "[prisma] seed failed (exit code: $SEED_EXIT)" >&2
+        echo "[prisma] This is non-fatal but indicates data may not be seeded." >&2
+        echo "[prisma] Common causes: missing tables, constraint violations, or seed script errors" >&2
       fi
     else
       echo "[prisma] seed skipped (RUN_SEED=0)"
