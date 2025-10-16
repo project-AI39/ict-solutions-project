@@ -18,6 +18,10 @@ services:
       DB_USER: appuser     # アプリ用ロール
       DB_PASS: appsecret   # 上記ロール初期パスワード (開発用)
       POSTGIS_ENABLE: "1"  # 0 で PostGIS 拡張スキップ
+      # DB_BOOT_MODE 切替:
+      #   persist       : 初回のみ DB 作成 + seed、その後は永続データを再利用
+      #   always-reset  : 起動毎に DB を DROP -> 再作成 -> migrate -> seed （テスト / E2E 用）
+      DB_BOOT_MODE: "always-reset"
       # CHOKIDAR_USEPOLLING: "1" # Windows/NFS で監視が不安定な場合のみ有効化
       # DOMAIN: myapp.example    # 本番 HTTPS ドメイン (Caddy 用)
       # DATABASE_URL: ""         # 未指定ならエントリポイントで自動組立
@@ -36,6 +40,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s   # 初回依存 (DB 初期化 / npm install) 猶予
+
+  # 開発用: 軽量な DB 管理 UI (Adminer)
+  # 注意: 本番に公開しないこと。開発用ローカルでのみ起動する。
+  adminer:
+    image: adminer:latest
+    container_name: ict_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080" # ブラウザで http://localhost:8080 にアクセス
+    environment:
+      ADMINER_DEFAULT_DB_DRIVER: pgsql
+    depends_on:
+      - app
 
 volumes:
   pgdata: {}
