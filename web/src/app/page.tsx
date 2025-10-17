@@ -7,6 +7,7 @@ import type { LatLngBounds } from "leaflet";
 import Box from "@mui/material/Box";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import Link from "next/link";
 import Paper from "@mui/material/Paper";
 
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
@@ -165,11 +166,11 @@ export default function Home() {
             }}
             sx={{ height: navHeight }}
           >
-            <BottomNavigationAction label="ホーム" icon={<HomeIcon />} />
-            <BottomNavigationAction label="検索" icon={<SearchIcon />} />
-            <BottomNavigationAction label="投稿" icon={<AddCircleOutlineIcon />} />
-            <BottomNavigationAction label="ユーザー" icon={<PersonIcon />} />
-            <BottomNavigationAction label="設定" icon={<SettingsIcon />} />
+            <BottomNavigationAction component={Link} href="/" label="ホーム" icon={<HomeIcon />} />
+            <BottomNavigationAction component={Link} href="/search" label="検索" icon={<SearchIcon />} />
+            <BottomNavigationAction component={Link} href="/post" label="投稿" icon={<AddCircleOutlineIcon />} />
+            <BottomNavigationAction component={Link} href="/user" label="ユーザー" icon={<PersonIcon />} />
+            <BottomNavigationAction component={Link} href="/settings" label="設定" icon={<SettingsIcon />} />
           </BottomNavigation>
         </Paper>
       </Box>
