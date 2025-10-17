@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 import Box from "@mui/material/Box";
@@ -18,10 +19,11 @@ const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false
 
 export default function Home() {
   const [value, setValue] = useState(0);
+  const router = useRouter(); 
 
   const navHeight = 64; // px
   const Tokyo: [number, number] = [35.6895, 139.6917];
-  // 仮のマーカーリスト（ホームページ用のサンプル）
+
   const sampleMarkers: { id: string; position: [number, number]; title: string; popup: string }[] = [
     { id: "tokyo-station", position: Tokyo, title: "東京", popup: "東京 (サンプル)" },
     { id: "shinjuku", position: [35.693840, 139.703549], title: "新宿", popup: "新宿 (サンプル)" },
@@ -34,14 +36,15 @@ export default function Home() {
     { id: "odaiba", position: [35.627222, 139.775556], title: "お台場", popup: "お台場 (サンプル)" },
     { id: "tokyo-tower", position: [35.6585805, 139.7454329], title: "東京タワー", popup: "東京タワー (サンプル)" },
   ];
+
   return (
     <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
-      {/* Map area: leave space for bottom nav so it isn't covered */}
+      {/* Map area */}
       <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: `calc(100vh - ${navHeight}px)` }}>
         <LeafletMap center={Tokyo} zoom={13} markers={sampleMarkers} />
       </Box>
 
-      {/* Bottom navigation - fixed to bottom, mobile-first */}
+      {/* Bottom navigation */}
       <Box sx={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
         <Paper elevation={8} sx={{ position: "relative", zIndex: 1200 }}>
           <BottomNavigation
@@ -56,7 +59,11 @@ export default function Home() {
             <BottomNavigationAction label="検索" icon={<SearchIcon />} />
             <BottomNavigationAction label="投稿" icon={<AddCircleOutlineIcon />} />
             <BottomNavigationAction label="ユーザー" icon={<PersonIcon />} />
-            <BottomNavigationAction label="設定" icon={<SettingsIcon />} />
+            <BottomNavigationAction
+              label="設定"
+              icon={<SettingsIcon />}
+              onClick={() => router.push("/settings")}
+            />
           </BottomNavigation>
         </Paper>
       </Box>
