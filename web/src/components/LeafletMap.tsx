@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import type { MapContainerProps } from "react-leaflet";
 import type { LatLngTuple, IconOptions, LatLngBounds } from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -46,6 +47,16 @@ export type LeafletMapProps = Omit<MapContainerProps, "center" | "children"> & E
 
 // 地図イベントをハンドリングするコンポーネント
 function MapEventHandler({ onBoundsChange }: { onBoundsChange?: (bounds: LatLngBounds) => void }) {
+    const map = useMap();
+
+    // 初回マウント時に bounds を通知
+    useEffect(() => {
+        if (onBoundsChange) {
+            const bounds = map.getBounds();
+            onBoundsChange(bounds);
+        }
+    }, [map, onBoundsChange]);
+
     useMapEvents({
         moveend: (e) => {
             if (onBoundsChange) {
