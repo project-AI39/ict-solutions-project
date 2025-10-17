@@ -45,7 +45,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // 初期プロファイル（API無し）
+  // 初期プロファイル
   const [profile, setProfile] = React.useState<User>({ email: "demo@example.com", name: "デモユーザー" });
   const [toast, setToast] = React.useState<{open:boolean; msg:string; type:"success"|"error"}>({ open:false, msg:"", type:"success" });
   const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -100,14 +100,12 @@ export default function SettingsPage() {
   async function saveEmail(values: z.infer<typeof emailSchema>) {
     const next = { ...profile, email: values.email };
     persistProfile(next);
-    setToast({ open:true, msg:"メールアドレスを更新しました（ローカル保存）", type:"success" });
     setEditing("none");
   }
 
   async function saveName(values: z.infer<typeof nameSchema>) {
     const next = { ...profile, name: values.name };
     persistProfile(next);
-    setToast({ open:true, msg:"ユーザー名を更新しました（ローカル保存）", type:"success" });
     setEditing("none");
   }
 
@@ -121,7 +119,6 @@ export default function SettingsPage() {
       }
       const newHash = await sha256Hex(values.newPassword);
       localStorage.setItem(PW_HASH_KEY, newHash);
-      setToast({ open:true, msg:"パスワードを変更しました（ローカル保存）", type:"success" });
       setEditing("none");
       pwForm.reset();
     } catch {
@@ -131,8 +128,6 @@ export default function SettingsPage() {
 
   // ログアウト/削除（ローカルのみ）
   const onLogout = async () => {
-    // 実サービスならセッション破棄APIが必要。ここではデモとしてログインページへ遷移のみ。
-    setToast({ open:true, msg:"ログアウト（デモ・ローカル）", type:"success" });
     router.replace("/login");
   };
   const onDelete = async () => {
@@ -140,7 +135,6 @@ export default function SettingsPage() {
       localStorage.removeItem(PROFILE_KEY);
       localStorage.removeItem(PW_HASH_KEY);
       setConfirmOpen(false);
-      setToast({ open:true, msg:"アカウントを削除しました（ローカル）", type:"success" });
       router.replace("/login");
     } catch (e:any) {
       setToast({ open:true, msg:"削除に失敗しました", type:"error" });
