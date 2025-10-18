@@ -2,17 +2,23 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic"; // 常に最新を表示したい場合（任意）
+export const dynamic = "force-dynamic";
 
-export default async function EventDetailPage({ params }: { params: { id: string } }) {
+// ✅ params は Promise なので await してから使う
+export default async function EventDetailPage(
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params; // ← ここがポイント
+
   const ev = await prisma.event.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { author: { select: { username: true } } },
   });
   if (!ev) return notFound();
 
   const date = new Date(ev.createdAt);
   const authorName = ev.author?.username ?? "unknown";
+  const hasImage = ev.imageUrl && ev.imageUrl.trim() !== "";
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-6">
@@ -23,9 +29,10 @@ export default async function EventDetailPage({ params }: { params: { id: string
         by {authorName} ・ {date.toLocaleString()}
       </p>
 
-      {ev.imageUrl && (
+      {/* 画像URLがある場合のみ表示 */}
+      {hasImage && (
         <div className="relative w-full h-64 mb-4">
-          <Image src={ev.imageUrl} alt={ev.title} fill className="object-cover rounded-xl" />
+          <Image src={ev.imageUrl!} alt={ev.title} fill className="object-cover rounded-xl" />
         </div>
       )}
 

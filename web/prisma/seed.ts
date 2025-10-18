@@ -17,7 +17,7 @@ const USERS = [
 ];
 
 const EVENTS = [
-  { id: 'evt_1', title: '朝ラン (東京駅)', imageUrl: null, description: '東京駅周辺での朝ランニング', latitude: 35.681236, longitude: 139.767125, authorId: 'usr_1' },
+  { id: 'evt_1', title: '朝ラン (東京駅)', imageUrl: "/images/test1.png", description: '東京駅周辺での朝ランニング', latitude: 35.681236, longitude: 139.767125, authorId: 'usr_1' },
   { id: 'evt_2', title: '英語カフェ (新宿)', imageUrl: null, description: '新宿で英語で雑談するカジュアルな集まり', latitude: 35.690921, longitude: 139.700258, authorId: 'usr_2' },
   { id: 'evt_3', title: 'プログラミング勉強会 (渋谷)', imageUrl: null, description: '渋谷で初心者向けのハンズオン', latitude: 35.658034, longitude: 139.701636, authorId: 'usr_3' },
   { id: 'evt_4', title: '写真散歩 (池袋)', imageUrl: null, description: '池袋周辺をカメラを持って散策', latitude: 35.728926, longitude: 139.71038, authorId: 'usr_4' },
