@@ -3,14 +3,26 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { EventCard } from "@/app/search/components/EventCard";
+import { Box, Paper } from "@mui/material";
+import BottomNavigation from "@mui/material/BottomNavigation";
+import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import HomeIcon from "@mui/icons-material/Home";
+import SearchIcon from "@mui/icons-material/Search";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import PersonIcon from "@mui/icons-material/Person";
+import SettingsIcon from "@mui/icons-material/Settings";
+import Link from "next/link";
 
 const MiniMap = dynamic(() => import("@/app/search/components/MiniMap"), { ssr: false });
 const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
+
+const navHeight = 64;
 
 export default function SearchPage() {
   const [keyword, setKeyword] = useState("");
   const [radius, setRadius] = useState(10);
   const [events, setEvents] = useState<any[]>([]);
+  const [navValue, setNavValue] = useState(3);
 
   // 現在地
   const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
@@ -162,6 +174,18 @@ export default function SearchPage() {
         </div>
       </div>
     )}
+    {/* Bottom navigation copied from Home for consistent UI */}
+    <Box sx={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+        <Paper elevation={8} sx={{ position: "relative", zIndex: 1200 }}>
+            <BottomNavigation showLabels value={navValue} onChange={(e, v) => setNavValue(v)} sx={{ height: navHeight }}>
+                <BottomNavigationAction component={Link} href="/" label="ホーム" icon={<HomeIcon />} />
+                <BottomNavigationAction component={Link} href="/search" label="検索" icon={<SearchIcon />} />
+                <BottomNavigationAction component={Link} href="/post" label="投稿" icon={<AddCircleOutlineIcon />} />
+                <BottomNavigationAction component={Link} href="/user" label="ユーザー" icon={<PersonIcon />} />
+                <BottomNavigationAction component={Link} href="/settings" label="設定" icon={<SettingsIcon />} />
+            </BottomNavigation>
+        </Paper>
+    </Box>
   </div>
 </div>
 
