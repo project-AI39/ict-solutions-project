@@ -23,10 +23,8 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import PersonIcon from "@mui/icons-material/Person";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { profileUpdateSchema, passwordChangeSchema } from "@/lib/validators/user";
 import { z } from "zod";
+import { profileUpdateSchema, passwordChangeSchema } from "@/lib/validators/user";
 
 type User = { email: string; name: string };
 
@@ -49,7 +47,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = React.useState<User>({ email: "demo@example.com", name: "デモユーザー" });
   const [toast, setToast] = React.useState<{open:boolean; msg:string; type:"success"|"error"}>({ open:false, msg:"", type:"success" });
   const [confirmOpen, setConfirmOpen] = React.useState(false);
-  type Editing = "none" | "email" | "name" | "password";
+  type Editing = "none" | "name" | "password";
   const [editing, setEditing] = React.useState<Editing>("none");
 
   // 起動時に localStorage から読み込み。無ければデフォルト＋初期パスワード hash を保存
@@ -63,29 +61,33 @@ export default function SettingsPage() {
     } catch {}
   }, []);
 
-  // ---- 行ごとのフォーム（Zodでクライアント検証） ----
-  const emailSchema = profileUpdateSchema.pick({ email: true });
-  const nameSchema  = profileUpdateSchema.pick({ name: true });
+  // ---- 手動バリデーション用の state ----
+  const nameOnlySchema = profileUpdateSchema.pick({ name: true });
 
-  const emailForm = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: profile.email },
-  });
-  const nameForm = useForm<z.infer<typeof nameSchema>>({
-    resolver: zodResolver(nameSchema),
-    defaultValues: { name: profile.name },
-  });
-  const pwForm = useForm<z.infer<typeof passwordChangeSchema>>({
-    resolver: zodResolver(passwordChangeSchema),
-    defaultValues: { changePassword: true, currentPassword: "", newPassword: "", confirm: "" },
-  });
+  const [nameInput, setNameInput] = React.useState(profile.name);
+  const [nameError, setNameError] = React.useState<string | null>(null);
+
+  const [pwCurrent, setPwCurrent] = React.useState("");
+  const [pwNew, setPwNew] = React.useState("");
+  const [pwConfirm, setPwConfirm] = React.useState("");
+  const [pwErrCurrent, setPwErrCurrent] = React.useState<string | null>(null);
+  const [pwErrNew, setPwErrNew] = React.useState<string | null>(null);
+  const [pwErrConfirm, setPwErrConfirm] = React.useState<string | null>(null);
 
   // 編集開始時に現値をフォームへ反映
   React.useEffect(() => {
-    if (editing === "email") emailForm.reset({ email: profile.email });
-    if (editing === "name")  nameForm.reset({ name:  profile.name });
-    if (editing === "password") pwForm.reset({ changePassword: true, currentPassword: "", newPassword: "", confirm: "" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (editing === "name") {
+      setNameInput(profile.name);
+      setNameError(null);
+    }
+    if (editing === "password") {
+      setPwCurrent("");
+      setPwNew("");
+      setPwConfirm("");
+      setPwErrCurrent(null);
+      setPwErrNew(null);
+      setPwErrConfirm(null);
+    }
   }, [editing, profile]);
 
   const [showPw1, setShowPw1] = React.useState(false);
@@ -97,30 +99,65 @@ export default function SettingsPage() {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(next)); } catch {}
   }
 
-  async function saveEmail(values: z.infer<typeof emailSchema>) {
-    const next = { ...profile, email: values.email };
+  async function saveName(e?: React.FormEvent) {
+    e?.preventDefault();
+    setNameError(null);
+
+    const parsed = nameOnlySchema.safeParse({ name: nameInput });
+    if (!parsed.success) {
+      // 最初のエラーメッセージを表示
+      const msg = parsed.error.issues[0]?.message ?? "無効な入力です";
+      setNameError(msg);
+      return;
+    }
+
+    const next = { ...profile, name: parsed.data.name };
     persistProfile(next);
+    setToast({ open:true, msg:"ユーザー名を更新しました", type:"success" });
     setEditing("none");
   }
 
-  async function saveName(values: z.infer<typeof nameSchema>) {
-    const next = { ...profile, name: values.name };
-    persistProfile(next);
-    setEditing("none");
-  }
+  async function savePassword(e?: React.FormEvent) {
+    e?.preventDefault();
 
-  async function savePassword(values: z.infer<typeof passwordChangeSchema>) {
+    // 既存のフィールドエラーをクリア
+    setPwErrCurrent(null);
+    setPwErrNew(null);
+    setPwErrConfirm(null);
+
+    // Zod バリデーション（confirm の一致などはスキーマ側にある前提）
+    const parsed = passwordChangeSchema.safeParse({
+      changePassword: true,
+      currentPassword: pwCurrent,
+      newPassword: pwNew,
+      confirm: pwConfirm,
+    });
+
+    if (!parsed.success) {
+      // 各フィールドに対応付けて表示
+      for (const issue of parsed.error.issues) {
+        const path = issue.path[0];
+        if (path === "currentPassword") setPwErrCurrent(issue.message);
+        if (path === "newPassword") setPwErrNew(issue.message);
+        if (path === "confirm") setPwErrConfirm(issue.message);
+      }
+      return;
+    }
+
+    // 現在パスワードの照合
     try {
       const currentHash = localStorage.getItem(PW_HASH_KEY) || "";
-      const inputHash   = await sha256Hex(values.currentPassword);
+      const inputHash   = await sha256Hex(parsed.data.currentPassword);
       if (currentHash && inputHash !== currentHash) {
-        setToast({ open:true, msg:"現在のパスワードが正しくありません", type:"error" });
+        setPwErrCurrent("現在のパスワードが正しくありません");
         return;
       }
-      const newHash = await sha256Hex(values.newPassword);
+      const newHash = await sha256Hex(parsed.data.newPassword);
       localStorage.setItem(PW_HASH_KEY, newHash);
+
+      setToast({ open:true, msg:"パスワードを更新しました", type:"success" });
       setEditing("none");
-      pwForm.reset();
+      setPwCurrent(""); setPwNew(""); setPwConfirm("");
     } catch {
       setToast({ open:true, msg:"パスワード変更に失敗しました", type:"error" });
     }
@@ -136,7 +173,7 @@ export default function SettingsPage() {
       localStorage.removeItem(PW_HASH_KEY);
       setConfirmOpen(false);
       router.replace("/login");
-    } catch (e:any) {
+    } catch {
       setToast({ open:true, msg:"削除に失敗しました", type:"error" });
     }
   };
@@ -187,32 +224,7 @@ export default function SettingsPage() {
               <Typography variant="subtitle1" color="text.secondary">アカウント</Typography>
 
               <List sx={{ bgcolor:"background.paper", borderRadius:2 }}>
-                {/* メールアドレス */}
-                <Row
-                  label="メールアドレス"
-                  value={profile.email || "-"}
-                  onEdit={() => setEditing(editing === "email" ? "none" : "email")}
-                  isEditing={editing === "email"}
-                >
-                  <form onSubmit={emailForm.handleSubmit(saveEmail)}>
-                    <Stack spacing={1.5}>
-                      <TextField
-                        label="新しいメールアドレス"
-                        type="email"
-                        autoComplete="email"
-                        inputMode="email"
-                        fullWidth
-                        error={!!emailForm.formState.errors.email}
-                        helperText={emailForm.formState.errors.email?.message}
-                        {...emailForm.register("email")}
-                      />
-                      <Stack direction="row" spacing={1}>
-                        <Button type="submit" variant="contained" startIcon={<SaveIcon/>} sx={{ minHeight:44 }}>保存</Button>
-                        <Button onClick={() => setEditing("none")} color="inherit" sx={{ minHeight:44 }}>キャンセル</Button>
-                      </Stack>
-                    </Stack>
-                  </form>
-                </Row>
+                {/* ▼ メールアドレス行は削除しました */}
 
                 {/* ユーザー名 */}
                 <Row
@@ -221,15 +233,16 @@ export default function SettingsPage() {
                   onEdit={() => setEditing(editing === "name" ? "none" : "name")}
                   isEditing={editing === "name"}
                 >
-                  <form onSubmit={nameForm.handleSubmit(saveName)}>
+                  <form onSubmit={saveName}>
                     <Stack spacing={1.5}>
                       <TextField
                         label="新しいユーザー名"
                         autoComplete="username"
                         fullWidth
-                        error={!!nameForm.formState.errors.name}
-                        helperText={nameForm.formState.errors.name?.message}
-                        {...nameForm.register("name")}
+                        value={nameInput}
+                        onChange={(e) => { setNameInput(e.target.value); setNameError(null); }}
+                        error={!!nameError}
+                        helperText={nameError ?? "3〜20文字など、スキーマ条件に従って入力"}
                       />
                       <Stack direction="row" spacing={1}>
                         <Button type="submit" variant="contained" startIcon={<SaveIcon/>} sx={{ minHeight:44 }}>保存</Button>
@@ -246,15 +259,17 @@ export default function SettingsPage() {
                   onEdit={() => setEditing(editing === "password" ? "none" : "password")}
                   isEditing={editing === "password"}
                 >
-                  <form onSubmit={pwForm.handleSubmit(savePassword)}>
+                  <form onSubmit={savePassword}>
                     <Stack spacing={1.5}>
                       <TextField
                         label="現在のパスワード"
                         type={showPw1 ? "text" : "password"}
                         autoComplete="current-password"
                         fullWidth
-                        error={!!pwForm.formState.errors.currentPassword}
-                        helperText={pwForm.formState.errors.currentPassword?.message}
+                        value={pwCurrent}
+                        onChange={(e)=>{ setPwCurrent(e.target.value); setPwErrCurrent(null); }}
+                        error={!!pwErrCurrent}
+                        helperText={pwErrCurrent ?? ""}
                         InputProps={{
                           endAdornment: (
                             <InputAdornment position="end">
@@ -264,15 +279,16 @@ export default function SettingsPage() {
                             </InputAdornment>
                           ),
                         }}
-                        {...pwForm.register("currentPassword")}
                       />
                       <TextField
                         label="新しいパスワード（8文字以上）"
                         type={showPw2 ? "text" : "password"}
                         autoComplete="new-password"
                         fullWidth
-                        error={!!pwForm.formState.errors.newPassword}
-                        helperText={pwForm.formState.errors.newPassword?.message}
+                        value={pwNew}
+                        onChange={(e)=>{ setPwNew(e.target.value); setPwErrNew(null); }}
+                        error={!!pwErrNew}
+                        helperText={pwErrNew ?? ""}
                         InputProps={{
                           endAdornment: (
                             <InputAdornment position="end">
@@ -282,16 +298,16 @@ export default function SettingsPage() {
                             </InputAdornment>
                           ),
                         }}
-                        {...pwForm.register("newPassword")}
                       />
                       <TextField
                         label="新しいパスワード（確認）"
                         type={showPw2 ? "text" : "password"}
                         autoComplete="new-password"
                         fullWidth
-                        error={!!pwForm.formState.errors.confirm}
-                        helperText={pwForm.formState.errors.confirm?.message}
-                        {...pwForm.register("confirm")}
+                        value={pwConfirm}
+                        onChange={(e)=>{ setPwConfirm(e.target.value); setPwErrConfirm(null); }}
+                        error={!!pwErrConfirm}
+                        helperText={pwErrConfirm ?? ""}
                       />
                       <Stack direction="row" spacing={1}>
                         <Button type="submit" variant="contained" startIcon={<SaveIcon/>} sx={{ minHeight:44 }}>保存</Button>
@@ -328,7 +344,12 @@ export default function SettingsPage() {
       </Dialog>
 
       {/* トースト */}
-      <Snackbar open={toast.open} autoHideDuration={2400} onClose={() => setToast(t=>({ ...t, open:false }))} anchorOrigin={{ vertical:"bottom", horizontal:"center" }}>
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={2400}
+        onClose={() => setToast(t=>({ ...t, open:false }))}
+        anchorOrigin={{ vertical:"bottom", horizontal:"center" }}
+      >
         <Alert onClose={() => setToast(t=>({ ...t, open:false }))} severity={toast.type} sx={{ width:"100%" }}>
           {toast.msg}
         </Alert>
