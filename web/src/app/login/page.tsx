@@ -30,7 +30,7 @@ export default function LoginForm() {
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, remember }),
+      body: JSON.stringify({ username, password }),
     });
 
     setLoading(false);
@@ -130,17 +130,6 @@ export default function LoginForm() {
             パスワードをお忘れですか？
           </a>
         </Box>
-
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-          }
-          label="ログイン状態を保存する"
-          sx={{ mb: 1 }}
-        />
 
         <Button
           type="submit"
