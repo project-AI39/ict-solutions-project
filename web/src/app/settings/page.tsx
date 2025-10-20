@@ -23,8 +23,6 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import PersonIcon from "@mui/icons-material/Person";
 
 import { useRouter, usePathname } from "next/navigation";
-import { z } from "zod";
-import { profileUpdateSchema, passwordChangeSchema } from "@/lib/validators/user";
 
 type User = { email: string; name: string };
 
@@ -37,6 +35,28 @@ async function sha256Hex(input: string): Promise<string> {
   const enc = new TextEncoder().encode(input);
   const buf = await crypto.subtle.digest("SHA-256", enc);
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// ---- 手書きバリデーション ----
+function validateName(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return "ユーザー名を入力してください。";
+  if (trimmed.length < 3 || trimmed.length > 20) return "ユーザー名は3〜20文字で入力してください。";
+  if (!/^[a-zA-Z0-9_ぁ-んァ-ヶｦ-ﾟ一-龥ー]+$/.test(trimmed)) {
+    return "ユーザー名は英数・アンダースコア・日本語のみ使用できます。";
+  }
+  return null;
+}
+
+type PwErrors = { current?: string | null; next?: string | null; confirm?: string | null };
+function validatePasswords(current: string, next: string, confirm: string): PwErrors {
+  const errs: PwErrors = {};
+  if (!current) errs.current = "現在のパスワードを入力してください。";
+  if (!next) errs.next = "新しいパスワードを入力してください。";
+  else if (next.length < 8) errs.next = "新しいパスワードは8文字以上で入力してください。";
+  if (!confirm) errs.confirm = "確認用のパスワードを入力してください。";
+  else if (next && confirm !== next) errs.confirm = "パスワードが一致しません。";
+  return errs;
 }
 
 export default function SettingsPage() {
@@ -61,12 +81,11 @@ export default function SettingsPage() {
     } catch {}
   }, []);
 
-  // ---- 手動バリデーション用の state ----
-  const nameOnlySchema = profileUpdateSchema.pick({ name: true });
-
+  // ---- 名前編集の state ----
   const [nameInput, setNameInput] = React.useState(profile.name);
   const [nameError, setNameError] = React.useState<string | null>(null);
 
+  // ---- パスワード編集の state ----
   const [pwCurrent, setPwCurrent] = React.useState("");
   const [pwNew, setPwNew] = React.useState("");
   const [pwConfirm, setPwConfirm] = React.useState("");
@@ -101,17 +120,9 @@ export default function SettingsPage() {
 
   async function saveName(e?: React.FormEvent) {
     e?.preventDefault();
-    setNameError(null);
-
-    const parsed = nameOnlySchema.safeParse({ name: nameInput });
-    if (!parsed.success) {
-      // 最初のエラーメッセージを表示
-      const msg = parsed.error.issues[0]?.message ?? "無効な入力です";
-      setNameError(msg);
-      return;
-    }
-
-    const next = { ...profile, name: parsed.data.name };
+    const err = validateName(nameInput);
+    if (err) { setNameError(err); return; }
+    const next = { ...profile, name: nameInput.trim() };
     persistProfile(next);
     setToast({ open:true, msg:"ユーザー名を更新しました", type:"success" });
     setEditing("none");
@@ -120,39 +131,22 @@ export default function SettingsPage() {
   async function savePassword(e?: React.FormEvent) {
     e?.preventDefault();
 
-    // 既存のフィールドエラーをクリア
-    setPwErrCurrent(null);
-    setPwErrNew(null);
-    setPwErrConfirm(null);
-
-    // Zod バリデーション（confirm の一致などはスキーマ側にある前提）
-    const parsed = passwordChangeSchema.safeParse({
-      changePassword: true,
-      currentPassword: pwCurrent,
-      newPassword: pwNew,
-      confirm: pwConfirm,
-    });
-
-    if (!parsed.success) {
-      // 各フィールドに対応付けて表示
-      for (const issue of parsed.error.issues) {
-        const path = issue.path[0];
-        if (path === "currentPassword") setPwErrCurrent(issue.message);
-        if (path === "newPassword") setPwErrNew(issue.message);
-        if (path === "confirm") setPwErrConfirm(issue.message);
-      }
-      return;
-    }
+    // クライアント側バリデーション
+    const errs = validatePasswords(pwCurrent, pwNew, pwConfirm);
+    setPwErrCurrent(errs.current ?? null);
+    setPwErrNew(errs.next ?? null);
+    setPwErrConfirm(errs.confirm ?? null);
+    if (errs.current || errs.next || errs.confirm) return;
 
     // 現在パスワードの照合
     try {
       const currentHash = localStorage.getItem(PW_HASH_KEY) || "";
-      const inputHash   = await sha256Hex(parsed.data.currentPassword);
+      const inputHash   = await sha256Hex(pwCurrent);
       if (currentHash && inputHash !== currentHash) {
-        setPwErrCurrent("現在のパスワードが正しくありません");
+        setPwErrCurrent("現在のパスワードが正しくありません。");
         return;
       }
-      const newHash = await sha256Hex(parsed.data.newPassword);
+      const newHash = await sha256Hex(pwNew);
       localStorage.setItem(PW_HASH_KEY, newHash);
 
       setToast({ open:true, msg:"パスワードを更新しました", type:"success" });
@@ -224,7 +218,7 @@ export default function SettingsPage() {
               <Typography variant="subtitle1" color="text.secondary">アカウント</Typography>
 
               <List sx={{ bgcolor:"background.paper", borderRadius:2 }}>
-                {/* ▼ メールアドレス行は削除しました */}
+                {/* ▼ メールアドレス行は削除済み */}
 
                 {/* ユーザー名 */}
                 <Row
@@ -242,7 +236,7 @@ export default function SettingsPage() {
                         value={nameInput}
                         onChange={(e) => { setNameInput(e.target.value); setNameError(null); }}
                         error={!!nameError}
-                        helperText={nameError ?? "3〜20文字など、スキーマ条件に従って入力"}
+                        helperText={nameError ?? "3〜20文字（英数・_・日本語可）"}
                       />
                       <Stack direction="row" spacing={1}>
                         <Button type="submit" variant="contained" startIcon={<SaveIcon/>} sx={{ minHeight:44 }}>保存</Button>
