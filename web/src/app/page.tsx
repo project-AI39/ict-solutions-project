@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { LatLngBounds } from "leaflet";
 
@@ -53,6 +54,7 @@ export default function Home() {
 
   // キャッシュ: Map<boundsKey, Event[]>
   const cacheRef = useRef<Map<string, Event[]>>(new Map());
+  const router = useRouter(); 
 
   const navHeight = 64; // px
   const Tokyo: [number, number] = [35.6895, 139.6917];
@@ -125,27 +127,34 @@ export default function Home() {
   }, [debouncedBounds, fetchEvents]);
 
   // イベントデータをマーカー形式に変換
+  // markers の生成部分
   const markers = events.map((event) => ({
     id: event.id,
     position: [event.latitude, event.longitude] as [number, number],
     title: event.title,
     popup: (
-      <div>
+      <div style={{ maxWidth: 220 }}>
         <h3 style={{ margin: "0 0 8px 0" }}>{event.title}</h3>
-        {event.description && <p style={{ margin: "0 0 8px 0" }}>{event.description}</p>}
+        {event.description && (
+          <p style={{ margin: "0 0 8px 0" }}>{event.description}</p>
+        )}
         {event.imageUrl && (
           <img
             src={event.imageUrl}
             alt={event.title}
-            style={{ maxWidth: "200px", width: "100%", borderRadius: "4px" }}
+            style={{ maxWidth: "200px", width: "100%", borderRadius: 4, marginBottom: 8 }}
           />
         )}
+        <a href={`/events/${event.id}`} style={{ textDecoration: "underline" }}>
+          詳細を見る →
+        </a>
       </div>
     ),
   }));
+
   return (
     <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
-      {/* Map area: leave space for bottom nav so it isn't covered */}
+      {/* Map area */}
       <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: `calc(100vh - ${navHeight}px)` }}>
         <LeafletMap
           center={Tokyo}
@@ -155,7 +164,7 @@ export default function Home() {
         />
       </Box>
 
-      {/* Bottom navigation - fixed to bottom, mobile-first */}
+      {/* Bottom navigation */}
       <Box sx={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
         <Paper elevation={8} sx={{ position: "relative", zIndex: 1200 }}>
           <BottomNavigation
