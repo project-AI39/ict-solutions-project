@@ -40,7 +40,7 @@ export default function LoginForm() {
       if (remember) localStorage.setItem("token", data.token);
       else sessionStorage.setItem("token", data.token);
 
-      router.push("/dashboard");
+      router.push("/");
     } else {
       setError("ユーザー名またはパスワードが間違っています");
     }
