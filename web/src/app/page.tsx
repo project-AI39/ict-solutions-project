@@ -127,24 +127,31 @@ export default function Home() {
   }, [debouncedBounds, fetchEvents]);
 
   // イベントデータをマーカー形式に変換
+  // markers の生成部分
   const markers = events.map((event) => ({
     id: event.id,
     position: [event.latitude, event.longitude] as [number, number],
     title: event.title,
     popup: (
-      <div>
+      <div style={{ maxWidth: 220 }}>
         <h3 style={{ margin: "0 0 8px 0" }}>{event.title}</h3>
-        {event.description && <p style={{ margin: "0 0 8px 0" }}>{event.description}</p>}
+        {event.description && (
+          <p style={{ margin: "0 0 8px 0" }}>{event.description}</p>
+        )}
         {event.imageUrl && (
           <img
             src={event.imageUrl}
             alt={event.title}
-            style={{ maxWidth: "200px", width: "100%", borderRadius: "4px" }}
+            style={{ maxWidth: "200px", width: "100%", borderRadius: 4, marginBottom: 8 }}
           />
         )}
+        <a href={`/events/${event.id}`} style={{ textDecoration: "underline" }}>
+          詳細を見る →
+        </a>
       </div>
     ),
   }));
+
   return (
     <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
       {/* Map area */}
