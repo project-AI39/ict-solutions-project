@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { EventCard } from "@/app/search/components/EventCard";
 
 const MiniMap = dynamic(() => import("@/app/search/components/MiniMap"), { ssr: false });
+const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 
 export default function SearchPage() {
   const [keyword, setKeyword] = useState("");
@@ -13,6 +14,8 @@ export default function SearchPage() {
 
   // 現在地
   const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
+  const mapCenter=[35.6895, 139.6917];
+
 
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -44,13 +47,12 @@ export default function SearchPage() {
     );
   };
 
-
   const handleSearch = async (pos?: [number, number]) => {
     // if (!pos) {
       // 位置情報なしなら検索キャンセル or 入力値だけ検索
     //  alert("現在地が取得できませんでした。位置情報を許可してください。");
     //  return;
-   // }
+    //}
 
     try {
       const res = await fetch("/api/events", {
@@ -58,12 +60,11 @@ export default function SearchPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           keyword,
-          lat: pos[0],
-          lng: pos[1],
+          lat: pos?.[0] ?? 35.6895,  // pos が undefined ならデフォルト値（東京）
+          lng: pos?.[1] ?? 139.6917,
           radius,
         }),
       });
-
       if (!res.ok) throw new Error("検索に失敗しました");
   
       const data = await res.json();
@@ -81,64 +82,88 @@ export default function SearchPage() {
   }, [keyword, radius]);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      {/* --- 検索フォーム --- */}
-      <form
-        className="bg-white p-4 shadow-md flex flex-wrap gap-2 items-center"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSearch(currentPos || undefined);
-        }}
-      >
-        <input
-          type="text"
-          className="flex-1 min-w-[120px] border rounded p-2"
-          placeholder="イベント名を検索"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
+<div className="flex flex-col h-screen">
+  {/* --- 検索フォーム --- */}
+  <form
+    className="bg-white p-4 shadow-md flex flex-wrap gap-2 items-center dark:text-gray-900"
+    onSubmit={(e) => {
+      e.preventDefault();
+      handleSearch(currentPos || undefined);
+    }}
+  >
+    <input
+      type="text"
+      className="flex-1 min-w-[120px] border rounded p-2 dark:text-gray-900"
+      placeholder="イベント名を検索"
+      value={keyword}
+      onChange={(e) => setKeyword(e.target.value)}
+    />
 
-        <select
-          className="border rounded p-2"
-          value={radius}
-          onChange={(e) => setRadius(Number(e.target.value))}
-        >
-          {[5, 10, 20, 50].map((r) => (
-            <option key={r} value={r}>{r}km</option>
+    <select
+      className="border rounded p-2"
+      value={radius}
+      onChange={(e) => setRadius(Number(e.target.value))}
+    >
+      {[5, 10, 20, 50].map((r) => (
+        <option key={r} value={r}>{r}km</option>
+      ))}
+    </select>
+
+    <button
+      type="button"
+      className="p-2 border rounded"
+      onClick={handleCurrentLocation}
+    >
+      📍
+    </button>
+
+    <button
+      type="submit"
+      className="p-2 bg-blue-500 text-white rounded"
+    >
+      🔍
+    </button>
+  </form>
+
+  {/* --- 地図と検索結果オーバーレイ --- */}
+  <div className="relative flex-1">
+    {/* 地図 */}
+    <LeafletMap
+      center={mapCenter}
+      zoom={13}
+      markers={events.map(ev => ({ id: ev.id, position: [ev.lat, ev.lng], title: ev.title }))}
+      onClick={(latlng) => setMapCenter([latlng.lat, latlng.lng])}
+      className="w-full h-full z-10"
+    />
+
+    {/* 地図から検索ボタン */}
+    <button
+      className="absolute bottom-2 right-2 bg-blue-500 text-white p-2 rounded z-20 dark:text-gray-900"
+      onClick={() => handleSearch(mapCenter)}
+    >
+      地図から検索
+    </button>
+
+    {/* 検索結果オーバーレイ */}
+    {events.length > 0 && (
+      <div className="absolute inset-0 z-30 overflow-y-auto p-4" onClick={() => setEvents([])}>
+        <div className="bg-white dark:text-gray-900 rounded-lg shadow-lg p-4 flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+          {events.map((ev) => (
+            <EventCard
+              key={ev.id}
+              title={ev.title}
+              distance={ev.distance}
+              date={ev.date}
+              lat={ev.lat}
+              lng={ev.lng}
+              description={ev.description}
+            />
           ))}
-        </select>
-
-        <button
-          type="button"
-          className="p-2 border rounded"
-          onClick={handleCurrentLocation}
-        >
-          📍
-        </button>
-
-        <button
-          type="submit"
-          className="p-2 bg-blue-500 text-white rounded"
-        >
-          🔍
-        </button>
-      </form>
-
-      {/* --- 検索結果 --- */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {events.map((ev) => (
-      <EventCard
-            key={ev.id}
-            title={ev.title}
-            distance={ev.distance}
-            date={ev.date}
-            lat={ev.lat}
-            lng={ev.lng}
-            description={ev.description}
-          />
-        ))}
+        </div>
       </div>
-    </div>
+    )}
+  </div>
+</div>
 
   );
 }
