@@ -58,9 +58,38 @@ export default function Home() {
 
   const navHeight = 64; // px
   const Tokyo: [number, number] = [35.6895, 139.6917];
+  const [initialCenter, setInitialCenter] = useState<[number, number] | null>(Tokyo);
 
   // デバウンス処理: 500ms後に実際のデータ取得を実行
   const debouncedBounds = useDebounce(currentBounds, 500);
+
+  // ブラウザの Geolocation API で現在地を取得
+  useEffect(() => {
+    if (!navigator || !navigator.geolocation) {
+      // Geolocation 非対応
+      setInitialCenter(Tokyo);
+      return;
+    }
+
+    let mounted = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!mounted) return;
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setInitialCenter([lat, lng]);
+      },
+      (err) => {
+        console.warn("Geolocation error, falling back to Tokyo:", err);
+        if (mounted) setInitialCenter(Tokyo);
+      },
+      { enableHighAccuracy: true, maximumAge: 1000 * 60 * 5, timeout: 10000 }
+    );
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // APIからイベントを取得する関数(キャッシュ対応)
   const fetchEvents = useCallback(async (bounds: LatLngBounds) => {
@@ -157,7 +186,7 @@ export default function Home() {
       {/* Map area */}
       <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: `calc(100vh - ${navHeight}px)` }}>
         <LeafletMap
-          center={Tokyo}
+          center={initialCenter ?? Tokyo}
           zoom={13}
           markers={markers}
           onBoundsChange={handleBoundsChange}

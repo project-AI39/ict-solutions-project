@@ -91,10 +91,21 @@ function MarkerList({ markers }: { markers?: LeafletMarker[] }) {
         </>
     );
 }
+// center prop の変更を受けて地図の表示位置を更新するユーティリティコンポーネント
+function CenterUpdater({ center }: { center: LatLngTuple }) {
+    const map = useMap();
+    useEffect(() => {
+        if (!center) return;
+        // setView を使って地図を移動（現在のズームを保持）
+        map.setView(center);
+    }, [map, center]);
+    return null;
+}
 export default function LeafletMap({ center, zoom = 13, className, style, tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution = "&copy; OpenStreetMap contributors", markers, onBoundsChange, ...mapProps }: LeafletMapProps) {
     return (
         <MapContainer center={center} zoom={zoom} className={className} style={{ width: "100%", height: "100%", ...style }} {...mapProps}>
             <TileLayer url={tileUrl} attribution={attribution} />
+            <CenterUpdater center={center} />
             <MapEventHandler onBoundsChange={onBoundsChange} />
             <MarkerList markers={markers} />
         </MapContainer>
