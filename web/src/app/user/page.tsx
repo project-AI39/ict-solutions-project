@@ -19,6 +19,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import PersonIcon from "@mui/icons-material/Person";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
+import useAuthCheck from "@/hooks/useAuthCheck";
 
 const navHeight = 64;
 
@@ -35,6 +36,7 @@ export default function UserPage() {
     const [myPosts, setMyPosts] = useState<Array<{ id: string; title: string; createdAt: string }>>([]);
     const [joinedPosts, setJoinedPosts] = useState<Array<{ id: string; title: string; createdAt: string }>>([]);
     const [navValue, setNavValue] = useState(3); // index of ユーザー in bottom nav
+    const { user, loading } = useAuthCheck();
 
     useEffect(() => {
         // プレースホルダー: 実装時に API を呼び出してください
@@ -46,6 +48,9 @@ export default function UserPage() {
             { id: "a", title: "参加した投稿サンプル A", createdAt: new Date().toISOString() },
         ]);
     }, []);
+
+    if (loading) return <p>認証中...</p>;
+    if (!user) return null;
 
     return (
         <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
