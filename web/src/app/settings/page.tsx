@@ -93,6 +93,22 @@ export default function SettingsPage() {
   const [pwErrNew, setPwErrNew] = React.useState<string | null>(null);
   const [pwErrConfirm, setPwErrConfirm] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) throw new Error("未ログイン");
+        const { user } = await res.json();
+        setProfile({ email: user.email, name: user.username });
+        setNameInput(user.username);
+      } catch {
+        router.replace("/login");
+      }
+    };
+    fetchUser();
+  }, []);
+
+
   // 編集開始時に現値をフォームへ反映
   React.useEffect(() => {
     if (editing === "name") {
