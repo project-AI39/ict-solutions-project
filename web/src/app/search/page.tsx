@@ -27,7 +27,7 @@ const navHeight = 64;
 export default function SearchPageMUI() {
   const [keyword, setKeyword] = useState("");
   const [events, setEvents] = useState<any[]>([]);
-  const [navValue, setNavValue] = useState(3);
+  const [navValue, setNavValue] = useState(1);
   const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
