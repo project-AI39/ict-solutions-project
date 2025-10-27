@@ -3,14 +3,23 @@ import { MiniMap } from "./MiniMap";
 import { useState } from "react";
 import Link from "next/link";
 
-export function EventCard({ id, title, distance, date, lat, lng, description }) {
+export function EventCard({ id, title, distance, sdate, fdate, lat, lng, description }) {
   const [showDetail, setShowDetail] = useState(false);
 
-  const jpDate = new Date(date).toLocaleDateString("ja-JP", {
+  const jpStart = new Date(sdate).toLocaleDateString("ja-JP", {
     month: "numeric",
     day: "numeric",
     weekday: "short",
   });
+
+  const jpEnd = new Date(fdate).toLocaleDateString("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+  });
+  // 表示用のまとめ
+  const jpDate =
+    jpStart === jpEnd ? jpStart : `${jpStart}〜${jpEnd}`;
 
   return (
     <Box
