@@ -235,6 +235,7 @@ export default function SearchPageMUI() {
               events.map((ev) => (
                 <EventCard
                   key={ev.id}
+                  id={ev.id}
                   title={ev.title}
                   distance={ev.distance != null ? round4(ev.distance) : 0}
                   date={ev.createdAt ? new Date(ev.createdAt).toLocaleDateString("ja-JP") : "日付未定"}
