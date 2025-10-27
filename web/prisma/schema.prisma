@@ -18,7 +18,6 @@ model User {
   events          Event[]
   participations  EventParticipant[]
 
-  // ★ 追加: ユーザーが書いたコメント
   comments        EventComment[]
 }
 
@@ -37,8 +36,6 @@ model Event {
   author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   participations EventParticipant[]
-
-  // ★ 追加: このイベントについたコメント
   comments       EventComment[]
 }
 
@@ -59,14 +56,14 @@ model EventParticipant {
 model EventComment {
   id        String   @id @default(cuid())
   body      String
+  authorId  String?  
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+
   createdAt DateTime @default(now())
 
-  // 関連
-  event     Event   @relation(fields: [eventId], references: [id])
-  eventId   String
-
-  author    User    @relation(fields: [authorId], references: [id])
-  authorId  String
-
-  @@index([eventId, createdAt])
+  @@index([authorId])
+  @@index([eventId])
 }
