@@ -91,6 +91,8 @@ COPY infra/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 # Windows 由来の CRLF が混入しても動くよう保険として LF 化
 RUN dos2unix /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
+RUN npm install -g ts-node typescript
+
 EXPOSE 80 443 3000 5432
 # HEALTHCHECK: PostgreSQL と Next.js (3000) の疎通 (Compose でも定義しているためここは任意)
 # HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD pg_isready -U postgres -p 5432 && curl -sf http://localhost:3000/ || exit 1
