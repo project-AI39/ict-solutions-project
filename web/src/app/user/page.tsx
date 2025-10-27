@@ -9,6 +9,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import Paper from "@mui/material/Paper";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
 import BottomNavigation from "@mui/material/BottomNavigation";
@@ -35,16 +36,40 @@ export default function UserPage() {
     const [myPosts, setMyPosts] = useState<Array<{ id: string; title: string; createdAt: string }>>([]);
     const [joinedPosts, setJoinedPosts] = useState<Array<{ id: string; title: string; createdAt: string }>>([]);
     const [navValue, setNavValue] = useState(3); // index of ユーザー in bottom nav
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // プレースホルダー: 実装時に API を呼び出してください
-        setMyPosts([
-            { id: "1", title: "自分の投稿サンプル 1", createdAt: new Date().toISOString() },
-            { id: "2", title: "自分の投稿サンプル 2", createdAt: new Date().toISOString() },
-        ]);
-        setJoinedPosts([
-            { id: "a", title: "参加した投稿サンプル A", createdAt: new Date().toISOString() },
-        ]);
+        let mounted = true;
+        (async () => {
+            try {
+                // 自分の投稿を取得
+                const myPostsRes = await fetch('/api/me/posts', { credentials: 'same-origin' });
+                if (!myPostsRes.ok) {
+                    throw new Error('自分の投稿の取得に失敗しました');
+                }
+                const myPostsData = await myPostsRes.json();
+
+                // 参加した投稿を取得
+                const joinedPostsRes = await fetch('/api/me/joined', { credentials: 'same-origin' });
+                if (!joinedPostsRes.ok) {
+                    throw new Error('参加投稿の取得に失敗しました');
+                }
+                const joinedPostsData = await joinedPostsRes.json();
+
+                if (mounted) {
+                    setMyPosts(myPostsData);
+                    setJoinedPosts(joinedPostsData);
+                    setLoading(false);
+                }
+            } catch (err: any) {
+                if (mounted) {
+                    setError(err.message || 'データの取得に失敗しました');
+                    setLoading(false);
+                }
+            }
+        })();
+        return () => { mounted = false; };
     }, []);
 
     return (
@@ -76,33 +101,45 @@ export default function UserPage() {
                 </Paper>
 
                 <Box sx={{ p: 2 }}>
-                    <TabPanel value={tab} index={0}>
-                        {myPosts.length === 0 ? (
-                            <Typography>投稿がありません</Typography>
-                        ) : (
-                            <List>
-                                {myPosts.map((p) => (
-                                    <ListItem key={p.id} divider>
-                                        <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        )}
-                    </TabPanel>
+                    {loading ? (
+                        <Typography>読み込み中...</Typography>
+                    ) : error ? (
+                        <Typography color="error">{error}</Typography>
+                    ) : (
+                        <>
+                            <TabPanel value={tab} index={0}>
+                                {myPosts.length === 0 ? (
+                                    <Typography>投稿がありません</Typography>
+                                ) : (
+                                    <List>
+                                        {myPosts.map((p) => (
+                                            <ListItem key={p.id} divider disablePadding>
+                                                <ListItemButton component={Link} href={`/events/${p.id}`} sx={{ px: 2 }}>
+                                                    <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
+                                                </ListItemButton>
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                )}
+                            </TabPanel>
 
-                    <TabPanel value={tab} index={1}>
-                        {joinedPosts.length === 0 ? (
-                            <Typography>参加した投稿がありません</Typography>
-                        ) : (
-                            <List>
-                                {joinedPosts.map((p) => (
-                                    <ListItem key={p.id} divider>
-                                        <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        )}
-                    </TabPanel>
+                            <TabPanel value={tab} index={1}>
+                                {joinedPosts.length === 0 ? (
+                                    <Typography>参加した投稿がありません</Typography>
+                                ) : (
+                                    <List>
+                                        {joinedPosts.map((p) => (
+                                            <ListItem key={p.id} divider disablePadding>
+                                                <ListItemButton component={Link} href={`/events/${p.id}`} sx={{ px: 2 }}>
+                                                    <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
+                                                </ListItemButton>
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                )}
+                            </TabPanel>
+                        </>
+                    )}
                 </Box>
             </Box>
 
