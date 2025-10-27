@@ -19,6 +19,7 @@ dist
 
 # Editor
 .vscode/*
+!.vscode/settings.json
 !.vscode/extensions.json
 
 # Local service / deploy metadata

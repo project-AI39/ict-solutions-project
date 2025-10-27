@@ -1,12 +1,13 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import type { MapContainerProps } from "react-leaflet";
-import type { LatLngTuple, IconOptions } from "leaflet";
+import type { LatLngTuple, IconOptions, LatLngBounds } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// CDN 経由でアイコン画像を参照する（バンドル依存を避ける）
+// CDN 経由でアイコン画像を参照する(バンドル依存を避ける)
 import L from "leaflet";
 
 const CDN_BASE = "https://unpkg.com/leaflet@1.9.4/dist/images";
@@ -30,6 +31,8 @@ type ExtraProps = {
     attribution?: string;
     // Marker support
     markers?: LeafletMarker[];
+    // 地図の表示範囲が変更された際のコールバック
+    onBoundsChange?: (bounds: LatLngBounds) => void;
 };
 
 export type LeafletMarker = {
@@ -41,6 +44,35 @@ export type LeafletMarker = {
 };
 
 export type LeafletMapProps = Omit<MapContainerProps, "center" | "children"> & ExtraProps;
+
+// 地図イベントをハンドリングするコンポーネント
+function MapEventHandler({ onBoundsChange }: { onBoundsChange?: (bounds: LatLngBounds) => void }) {
+    const map = useMap();
+
+    // 初回マウント時に bounds を通知
+    useEffect(() => {
+        if (onBoundsChange) {
+            const bounds = map.getBounds();
+            onBoundsChange(bounds);
+        }
+    }, [map, onBoundsChange]);
+
+    useMapEvents({
+        moveend: (e) => {
+            if (onBoundsChange) {
+                const bounds = e.target.getBounds();
+                onBoundsChange(bounds);
+            }
+        },
+        zoomend: (e) => {
+            if (onBoundsChange) {
+                const bounds = e.target.getBounds();
+                onBoundsChange(bounds);
+            }
+        },
+    });
+    return null;
+}
 
 function MarkerList({ markers }: { markers?: LeafletMarker[] }) {
     if (!markers || markers.length === 0) return null;
@@ -59,10 +91,22 @@ function MarkerList({ markers }: { markers?: LeafletMarker[] }) {
         </>
     );
 }
-export default function LeafletMap({ center, zoom = 13, className, style, tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution = "&copy; OpenStreetMap contributors", markers, ...mapProps }: LeafletMapProps) {
+// center prop の変更を受けて地図の表示位置を更新するユーティリティコンポーネント
+function CenterUpdater({ center }: { center: LatLngTuple }) {
+    const map = useMap();
+    useEffect(() => {
+        if (!center) return;
+        // setView を使って地図を移動（現在のズームを保持）
+        map.setView(center);
+    }, [map, center]);
+    return null;
+}
+export default function LeafletMap({ center, zoom = 13, className, style, tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution = "&copy; OpenStreetMap contributors", markers, onBoundsChange, ...mapProps }: LeafletMapProps) {
     return (
         <MapContainer center={center} zoom={zoom} className={className} style={{ width: "100%", height: "100%", ...style }} {...mapProps}>
             <TileLayer url={tileUrl} attribution={attribution} />
+            <CenterUpdater center={center} />
+            <MapEventHandler onBoundsChange={onBoundsChange} />
             <MarkerList markers={markers} />
         </MapContainer>
     );
