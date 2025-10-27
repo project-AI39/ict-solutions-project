@@ -29,11 +29,13 @@ model User {
 
 model Event {
   id        String   @id @default(cuid()) // イベントID（主キー）: 文字列の一意識別子
-  title     String                     // タイトル: イベント名
-  imageUrl  String?                    // 画像URL: 代表画像を外部ストレージに置き、そのURLを保存
-  description String?                  // 説明: イベント詳細テキスト（任意）
-  createdAt DateTime @default(now())   // 投稿時間: レコード作成時刻
-  updatedAt DateTime @updatedAt        // 更新日時: レコード更新時に自動更新
+  title     String                      // タイトル: イベント名
+  imageUrl  String?                     // 画像URL: 代表画像を外部ストレージに置き、そのURLを保存
+  description String?                   // 説明: イベント詳細テキスト（任意）
+  createdAt DateTime @default(now())    // 投稿時間: レコード作成時刻
+  updatedAt DateTime @updatedAt         // 更新日時: レコード更新時に自動更新
+  eventstartDay DateTime                // イベント初日: レコード更新時に自動更新
+  eventfinishDay DateTime                // イベント初日: レコード更新時に自動更新
 
   // シンプルな位置情報（PostGIS を使わない場合）
   latitude  Float                     // 緯度: 小数 (例: 35.681236)
