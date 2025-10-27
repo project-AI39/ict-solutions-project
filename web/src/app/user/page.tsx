@@ -9,6 +9,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import Paper from "@mui/material/Paper";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
 import BottomNavigation from "@mui/material/BottomNavigation";
@@ -112,8 +113,10 @@ export default function UserPage() {
                                 ) : (
                                     <List>
                                         {myPosts.map((p) => (
-                                            <ListItem key={p.id} divider>
-                                                <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
+                                            <ListItem key={p.id} divider disablePadding>
+                                                <ListItemButton component={Link} href={`/events/${p.id}`} sx={{ px: 2 }}>
+                                                    <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
+                                                </ListItemButton>
                                             </ListItem>
                                         ))}
                                     </List>
@@ -126,8 +129,10 @@ export default function UserPage() {
                                 ) : (
                                     <List>
                                         {joinedPosts.map((p) => (
-                                            <ListItem key={p.id} divider>
-                                                <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
+                                            <ListItem key={p.id} divider disablePadding>
+                                                <ListItemButton component={Link} href={`/events/${p.id}`} sx={{ px: 2 }}>
+                                                    <ListItemText primary={p.title} secondary={new Date(p.createdAt).toLocaleString()} />
+                                                </ListItemButton>
                                             </ListItem>
                                         ))}
                                     </List>
