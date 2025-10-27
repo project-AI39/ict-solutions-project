@@ -21,7 +21,7 @@ const EVENTS = [
     id: "evt_1",
     title: "朝ラン (東京駅)",
     description: "東京駅周辺での朝ランニング",
-    imageUrl: "https://placehold.co/200x150?text=朝ラン",
+    imageUrl: "/images/test1.png",
     latitude: 35.681236,
     longitude: 139.767125,
     createdAt: new Date("2025-11-16"),
