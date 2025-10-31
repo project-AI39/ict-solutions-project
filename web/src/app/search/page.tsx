@@ -23,6 +23,7 @@ import { EventCard } from "@/app/search/components/EventCard";
 const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 const round4 = (num: number) => Math.round(num * 100) / 100;
 const navHeight = 64;
+const Tokyo: [number, number] = [35.6895, 139.6917];
 
 export default function SearchPageMUI() {
   const [keyword, setKeyword] = useState("");
@@ -32,7 +33,7 @@ export default function SearchPageMUI() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([35.6895, 139.6917]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(Tokyo);
   const [isSearching, setIsSearching] = useState(false);
 
   const handleCurrentLocation = () => {
@@ -43,9 +44,9 @@ export default function SearchPageMUI() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setCurrentPos({ lat: latitude, lng: longitude });
+        setCurrentPos([ latitude, longitude ]);
         // selectedRadius があればそれも検索条件に含める
-        handleSearch({ lat: latitude, lng: longitude, radius: selectedRadius ?? undefined });
+        //handleSearch([ latitude, longitude ], selectedRadius ?? undefined });
       },
       (error) => {
         switch (error.code) {
@@ -104,6 +105,29 @@ export default function SearchPageMUI() {
     if (isSearching) {
       setIsSearching(false);
     }
+    if (!navigator || !navigator.geolocation) {
+      setCurrentPos(Tokyo);
+      return;
+    }
+
+    let mounted = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!mounted) return;
+        const latlng: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setCurrentPos(latlng);
+      },
+      (err) => {
+        if (mounted) {
+          setCurrentPos(Tokyo);
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 1000 * 60 * 5, timeout: 10000 }
+    );
+
+    return () => {
+      mounted = false;
+    };
   }, [keyword, dateFrom, dateTo]);
 
   return (
@@ -205,7 +229,7 @@ export default function SearchPageMUI() {
       {/* 地図 + 検索結果オーバーレイ */}
       <Box sx={{ flex: 1, position: "relative", pb: `${navHeight}px` }}>
         <LeafletMap
-          center={mapCenter}
+          center={currentPos ?? mapCenter}
           zoom={13}
           markers={events.map((ev) => ({ id: ev.id, position: [ev.latitude, ev.longitude], title: ev.title }))}
           onClick={(latlng) => setMapCenter([latlng.latitude, latlng.longitude])}
