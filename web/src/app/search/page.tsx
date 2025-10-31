@@ -13,6 +13,7 @@ import {
   BottomNavigation,
   BottomNavigationAction,
 } from "@mui/material";
+import L from "leaflet";
 import HomeIcon from "@mui/icons-material/Home";
 import SearchIcon from "@mui/icons-material/Search";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
@@ -24,6 +25,14 @@ const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false
 const round4 = (num: number) => Math.round(num * 100) / 100;
 const navHeight = 64;
 const Tokyo: [number, number] = [35.6895, 139.6917];
+
+// 現在地用の青い丸アイコン
+export const currentPosIcon = L.icon({
+  iconUrl: "/images/pinIcon.png",
+  iconSize: [48, 64],
+  iconAnchor: [24, 32], // ピンの先端が位置座標にくるように
+  popupAnchor: [0, -32], // ポップアップ位置
+});
 
 export default function SearchPageMUI() {
   const [keyword, setKeyword] = useState("");
@@ -231,7 +240,10 @@ export default function SearchPageMUI() {
         <LeafletMap
           center={currentPos ?? mapCenter}
           zoom={13}
-          markers={events.map((ev) => ({ id: ev.id, position: [ev.latitude, ev.longitude], title: ev.title }))}
+          markers={[
+            ...(currentPos ? [{ id: "currentPos", position: currentPos, title: "📍 現在地", iconOptions: currentPosIcon, }] : []),
+            ...events.map((ev) => ({ id: ev.id, position: [ev.latitude, ev.longitude], title: ev.title }))
+          ]}
           onClick={(latlng) => setMapCenter([latlng.latitude, latlng.longitude])}
           className="w-full h-full z-10"
         />

@@ -82,8 +82,12 @@ function MarkerList({ markers }: { markers?: LeafletMarker[] }) {
             {markers.map((m) => {
                 if (!Array.isArray(m.position) || m.position.length !== 2) return null;
                 const key = m.id ?? `${m.position[0]}_${m.position[1]}`;
+
+                // iconOptions がある場合は L.icon で生成、それ以外はデフォルト
+                const icon = m.iconOptions ? m.iconOptions : DEFAULT_ICON;
+
                 return (
-                    <Marker key={key} position={m.position} title={m.title} icon={DEFAULT_ICON}>
+                    <Marker key={key} position={m.position} title={m.title} icon={icon}>
                         {m.popup ? <Popup>{m.popup}</Popup> : null}
                     </Marker>
                 );
