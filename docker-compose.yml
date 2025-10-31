@@ -32,7 +32,7 @@ services:
     ports:
       - "3000:3000" # Next.js (dev)
       - "8888:8888"     # HTTP (Caddy)
-      - "4430:4430"   # HTTPS (Caddy)
+      - "443:443"   # HTTPS (Caddy)
       - "5432:5432" # PostgreSQL 直接接続 (psql/GUI)
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/ || exit 1"] # Next.js が応答すれば OK
