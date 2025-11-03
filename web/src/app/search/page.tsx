@@ -12,6 +12,10 @@ import {
   ToggleButtonGroup,
   BottomNavigation,
   BottomNavigationAction,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import SearchIcon from "@mui/icons-material/Search";
@@ -32,6 +36,7 @@ export default function SearchPageMUI() {
   const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [sort, setSort] = useState<"distance" | "time" | "new">("distance");
   const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(Tokyo);
   const [isSearching, setIsSearching] = useState(false);
@@ -44,7 +49,7 @@ export default function SearchPageMUI() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setCurrentPos([ latitude, longitude ]);
+        setCurrentPos([latitude, longitude]);
         // selectedRadius があればそれも検索条件に含める
         //handleSearch([ latitude, longitude ], selectedRadius ?? undefined });
       },
@@ -61,7 +66,7 @@ export default function SearchPageMUI() {
             break;
           default:
             alert("位置情報の取得で不明なエラーが発生しました。");
-          }
+        }
       }
     );
   };
@@ -75,29 +80,30 @@ export default function SearchPageMUI() {
     setSelectedRadius(r);
   }
 
-  const handleSearch = async (pos?: [number, number], selectedRadius) => {
+  const handleSearch = async (pos?: [number, number], selectedRadius?: number | null) => {
     setIsSearching(true);
     try {
-      const res = await fetch("/api/searchs", { 
+      const res = await fetch("/api/searchs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          keyword, 
-          lat: pos?.[0] ?? 35.6895, 
-          lng: pos?.[1] ?? 139.6917, 
-          radius: selectedRadius ?? 999999, 
+        body: JSON.stringify({
+          keyword,
+          lat: pos?.[0] ?? 35.6895,
+          lng: pos?.[1] ?? 139.6917,
+          radius: selectedRadius ?? 999999,
           dateFrom, // ✅ 追加
           dateTo, // ✅ 追加 
+          sort,    // ✅ 追加（"distance" | "time" | "new"）
         }),
-      }); 
+      });
       if (!res.ok) throw new Error("検索に失敗しました");
-      
+
       const data = await res.json();
-      setEvents(data); 
-    } catch (err) { 
-      console.error(err); 
-      alert("検索エラーが発生しました"); 
-    } 
+      setEvents(data);
+    } catch (err) {
+      console.error(err);
+      alert("検索エラーが発生しました");
+    }
   };
 
   // フォームの変更で isSearching をリセット
@@ -188,7 +194,7 @@ export default function SearchPageMUI() {
                 setDateFrom(e.target.value)
                 // dateTo が存在してかつ dateFrom が dateTo より後なら補正
                 if (dateTo && new Date(e.target.value) > new Date(dateTo)) {
-                  setDateTo(e.target.value); 
+                  setDateTo(e.target.value);
                 }
               }}
               InputLabelProps={{ shrink: true }}
@@ -198,17 +204,32 @@ export default function SearchPageMUI() {
               label="開催日To"
               type="date"
               value={dateTo}
-              onChange={(e) =>{
+              onChange={(e) => {
                 setDateTo(e.target.value)
                 // dateFrom が存在してかつ dateTo が dateFrom より前なら補正
                 if (dateFrom && new Date(e.target.value) < new Date(dateFrom)) {
-                  setDateFrom(e.target.value); 
+                  setDateFrom(e.target.value);
                 }
               }}
               InputLabelProps={{ shrink: true }}
               fullWidth
             />
           </Box>
+
+          {/* 並び替え */}
+          <FormControl fullWidth>
+            <InputLabel id="sort-label">並び替え</InputLabel>
+            <Select
+              labelId="sort-label"
+              label="並び替え"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as "distance" | "time" | "new")}
+            >
+              <MenuItem value="distance">距離が近い順</MenuItem>
+              <MenuItem value="time">開催が近い順</MenuItem>
+              <MenuItem value="new">新着順</MenuItem>
+            </Select>
+          </FormControl>
 
           <Button
             variant="contained"
