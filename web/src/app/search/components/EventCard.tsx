@@ -1,7 +1,14 @@
+//検索後に多くの条件を変更して再検索すると、エラーが出る。
+"use client";
+import dynamic from "next/dynamic";
 import { Box, Typography, Button } from "@mui/material";
-import { MiniMap } from "./MiniMap";
 import { useState } from "react";
 import Link from "next/link";
+
+// ✅ MiniMap を SSR 無効で動的読み込み（サーバーに載せない）
+const MiniMap = dynamic(() => import("./MiniMap").then(m => m.MiniMap), {
+  ssr: false,
+});
 
 export function EventCard({ id, title, distance, sdate, fdate, lat, lng, description }) {
   const [showDetail, setShowDetail] = useState(false);
@@ -17,9 +24,17 @@ export function EventCard({ id, title, distance, sdate, fdate, lat, lng, descrip
     day: "numeric",
     weekday: "short",
   });
-  // 表示用のまとめ
-  const jpDate =
-    jpStart === jpEnd ? jpStart : `${jpStart}〜${jpEnd}`;
+  const jpDate = jpStart === jpEnd ? jpStart : `${jpStart}〜${jpEnd}`;
+
+  // ✅ Googleマップで経路を開く（destinationだけ渡す簡易版）
+  const openRouteInGoogleMap = () => {
+    if (lat == null || lng == null) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+      `${lat},${lng}`
+    )}`;
+    // 新しいタブで開く
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <Box
@@ -39,17 +54,28 @@ export function EventCard({ id, title, distance, sdate, fdate, lat, lng, descrip
         距離：{distance}km　｜　開催日：{jpDate}
       </Typography>
 
-      <MiniMap lat={lat} lng={lng} />
+      <MiniMap key={`mini-${id}-${lat}-${lng}`} lat={lat} lng={lng} />
 
-      <Button
-        variant="outlined"
-        fullWidth
-        component={Link}
-        href={`/events/${id}`}
-        sx={{ mt: 1, textDecoration: "none" }}
-      >
-        詳細を見る ▶
-      </Button>
+      {/* ✅ ボタンを横並びに（左：詳細を見る、右：ここに行く） */}
+      <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
+        <Button
+          variant="outlined"
+          component={Link}
+          href={`/events/${id}`}
+          sx={{ textDecoration: "none", flex: 1 }}
+        >
+          詳細を見る ▶
+        </Button>
+
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={openRouteInGoogleMap}
+          sx={{ flex: 1 }}
+        >
+          ここに行く🧭
+        </Button>
+      </Box>
     </Box>
   );
 }
