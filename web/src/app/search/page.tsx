@@ -1,3 +1,4 @@
+//web\src\app\search\page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -226,7 +227,7 @@ export default function SearchPageMUI() {
               onChange={(e) => setSort(e.target.value as "distance" | "time" | "new")}
             >
               <MenuItem value="distance">距離が近い順</MenuItem>
-              <MenuItem value="time">開催が近い順</MenuItem>
+              <MenuItem value="time">開催日が近い順</MenuItem>
               <MenuItem value="new">新着順</MenuItem>
             </Select>
           </FormControl>
