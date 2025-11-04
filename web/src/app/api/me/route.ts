@@ -1,12 +1,10 @@
 // src/app/api/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const JWT_SECRET = process.env.JWT_SECRET || "DEV_SECRET_KEY";
 
 // 安全に一部だけ見るヘルパ
 function preview(v: unknown, len = 12) {
@@ -30,25 +28,11 @@ function pickUserId(req: NextRequest): string | null {
   const cookieNames = req.cookies.getAll().map((c) => c.name);
   console.log("[/api/me] cookies:", cookieNames, " token:", token ? preview(token) : "none");
 
-  if (token) {
-    try {
-      const p: any = jwt.verify(token, JWT_SECRET);
-      // ここがポイント：候補となる複数のキーを順に見る
-      const candidates = [
-        p?.sub,
-        p?.id,
-        p?.userId,
-        p?.uid,
-        p?.user?.id,
-        typeof p === "string" ? p : null, // 文字列ペイロードのJWTにも対応
-      ].filter((x): x is string => typeof x === "string" && x.length > 0);
-
-      const uid = candidates[0] ?? null;
-      console.log("[/api/me] JWT verified. payload:", safeJson(p), " -> uid:", uid);
-      if (uid) return uid;
-    } catch (e) {
-      console.warn("[/api/me] JWT verify failed:", (e as Error)?.message);
-    }
+  // 標準のヘルパを使う（sub クレーム対応済み）
+  const uid = getUserIdFromRequest(req);
+  if (uid) {
+    console.log("[/api/me] getUserIdFromRequest -> uid:", uid);
+    return uid;
   }
 
   // TEST-ONLY フォールバック
@@ -117,8 +101,9 @@ export async function POST(req: NextRequest) {
 
     console.log("[/api/me][POST] Issue token for:", userId);
 
-    // sub に userId を入れる（標準的）
-    const token = jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: "7d" });
+    // 標準ヘルパでトークン発行
+    const { signToken } = await import("@/lib/auth");
+    const token = signToken(userId);
 
     const res = NextResponse.json({ ok: true, userId });
     res.cookies.set("token", token, {

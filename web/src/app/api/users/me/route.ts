@@ -1,23 +1,7 @@
 // src/app/api/users/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import * as cookie from "cookie";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "DEV_SECRET_KEY";
-
-// JWT からユーザーIDを取り出す
-function getUserId(req: NextRequest): string | null {
-  const cookies = cookie.parse(req.headers.get("cookie") || "");
-  const token = cookies["token"];
-  if (!token) return null;
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as { uid?: string; userId?: string };
-    return (payload.userId || payload.uid) ?? null;
-  } catch {
-    return null;
-  }
-}
+import { getUserIdFromRequest } from "@/lib/auth";
 
 // ユーザー名バリデーション
 function validateUsername(name: string): string | null {
@@ -31,7 +15,7 @@ function validateUsername(name: string): string | null {
 
 // 🔹 PATCH: ユーザー名変更
 export async function PATCH(req: NextRequest) {
-  const uid = getUserId(req);
+  const uid = getUserIdFromRequest(req);
   if (!uid) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { username } = await req.json().catch(() => ({}));
@@ -55,7 +39,7 @@ export async function PATCH(req: NextRequest) {
 
 // 🔹 DELETE: アカウント削除
 export async function DELETE(req: NextRequest) {
-  const uid = getUserId(req);
+  const uid = getUserIdFromRequest(req);
   if (!uid) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   try {

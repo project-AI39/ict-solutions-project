@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
+import { getUserIdFromRequest } from "@/lib/auth";
 import fs from "fs/promises";
 import path from "path";
-import jwt, { JwtPayload } from 'jsonwebtoken';
-
-const SECRET_KEY = process.env.JWT_SECRET || "DEV_SECRET_KEY";
 
 // フォームデータの型を定義
 // const eventFormSchema = z.object({
@@ -31,25 +28,11 @@ const SECRET_KEY = process.env.JWT_SECRET || "DEV_SECRET_KEY";
  */
 export async function POST(request: NextRequest) {
   try {
-    // --- 🔽 認証チェックを追加 🔽 ---
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ message: '認証されていません' }, { status: 401 });
+    // 認証チェック
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json({ message: '認証が必要です' }, { status: 401 });
     }
-
-    let decodedPayload: JwtPayload | string;
-    try {
-      decodedPayload = jwt.verify(token, SECRET_KEY);
-    } catch (error) {
-      return NextResponse.json({ message: '無効なトークンです' }, { status: 401 });
-    }
-
-    // トークンからユーザーIDを取得 (login/route.ts の sign 時のペイロードに合わせる)
-    const userId = typeof decodedPayload === 'object' ? decodedPayload.userId : null;
-    if (!userId || typeof userId !== 'string') {
-        return NextResponse.json({ message: 'トークンからユーザーIDを取得できませんでした' }, { status: 400 });
-    }
-    // --- 🔼 認証チェックここまで 🔼 ---
 
     // FormData処理とバリデーション
     const formData = await request.formData();

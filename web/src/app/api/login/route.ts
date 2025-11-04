@@ -1,11 +1,10 @@
 // app/api/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { signToken } from "@/lib/auth";
 
 const prisma = new PrismaClient();
-const SECRET_KEY = process.env.JWT_SECRET || "DEV_SECRET_KEY";
 const HASH_ENABLED = (process.env.PASSWORD_HASH_ENABLED ?? "true").toLowerCase() === "true";
 
 export async function POST(req: NextRequest) {
@@ -29,8 +28,8 @@ export async function POST(req: NextRequest) {
       await prisma.user.update({ where: { id: user.id }, data: { password: newHash } });
     }
 
-    // ★トークンは sub（標準クレーム）だけに
-    const token = jwt.sign({ sub: user.id }, SECRET_KEY, { expiresIn: "7d" });
+    // 標準 JWT（sub クレーム）を発行
+    const token = signToken(user.id);
 
     const res = NextResponse.json({ ok: true, username: user.username });
     res.cookies.set("token", token, {
