@@ -505,7 +505,7 @@ const EVENTS = [
     id: "evt_45",
     title: "研究室公開デー (茨城大学工学部)",
     description: "茨城大学工学部の研究室を一般公開！学生の研究成果を紹介します",
-    imageUrl: null,
+    imageUrl: "/images/test2.png",
     latitude: 36.572298269450734,
     longitude: 140.64297075180048,
     eventstartDay: new Date("2025-11-15"),
