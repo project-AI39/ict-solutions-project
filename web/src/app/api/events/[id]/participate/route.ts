@@ -1,25 +1,13 @@
 // src/app/api/events/[id]/participate/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const JWT_SECRET = process.env.JWT_SECRET || "DEV_SECRET_KEY";
 const METERS_ALLOWED = 10;
 const POINTS_PER_JOIN = 10;
-
-function getUserIdFromRequest(req: NextRequest): string | null {
-  const token = req.cookies.get("token")?.value;
-  if (!token) return null;
-  try {
-    const p = jwt.verify(token, JWT_SECRET) as { sub?: string; id?: string; userId?: string };
-    return p.sub || p.id || p.userId || null;
-  } catch {
-    return null;
-  }
-}
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000;

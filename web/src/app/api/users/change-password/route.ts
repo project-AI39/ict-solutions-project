@@ -2,26 +2,10 @@
 //いったん平文のままパスワードを扱っている。 将来的にハッシュ化を検討。
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import * as cookie from "cookie";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "DEV_SECRET_KEY";
-
-// CookieからユーザーIDを取得
-function getUserId(req: NextRequest): string | null {
-  const cookies = cookie.parse(req.headers.get("cookie") || "");
-  const token = cookies["token"];
-  if (!token) return null;
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as { userId?: string };
-    return payload.userId ?? null;
-  } catch {
-    return null;
-  }
-}
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
-  const uid = getUserId(req);
+  const uid = getUserIdFromRequest(req);
   if (!uid) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

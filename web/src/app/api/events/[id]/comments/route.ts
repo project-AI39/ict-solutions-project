@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import * as cookie from "cookie";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "DEV_SECRET_KEY";
-
-function getUserId(req: NextRequest): string | null {
-  const cookies = cookie.parse(req.headers.get("cookie") || "");
-  const token = cookies["token"];
-  if (!token) return null;
-  try {
-    const p = jwt.verify(token, JWT_SECRET) as { userId?: string; uid?: string };
-    return (p.userId || p.uid) ?? null;
-  } catch {
-    return null;
-  }
-}
+import { getUserIdFromRequest } from "@/lib/auth";
 
 // GET /api/events/[id]/comments?take=30
 export async function GET(
@@ -50,7 +35,7 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }   // ★ Promise で受ける
 ) {
-  const uid = getUserId(req);
+  const uid = getUserIdFromRequest(req);
   if (!uid) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;           // ★ await 必須
