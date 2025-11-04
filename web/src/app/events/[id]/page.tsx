@@ -50,10 +50,13 @@ export default async function EventDetailPage(
       {hasImage && (
         <div className="relative w-full h-64 mb-4">
           <Image
-            src={ev.imageUrl!}
+            // public 配下の相対パスが入る想定なので先に正規化しておく
+            src={ev.imageUrl!.startsWith("/") ? ev.imageUrl! : `/${ev.imageUrl!}`}
             alt={ev.title}
             fill
             className="object-cover rounded-xl"
+            // 一時的に Next.js の最適化をバイパスして配信経路の問題を切り分ける
+            unoptimized
           />
         </div>
       )}

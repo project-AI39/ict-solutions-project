@@ -10,12 +10,17 @@ import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Link from "next/link";
 import Paper from "@mui/material/Paper";
+import IconButton from "@mui/material/IconButton";
+import Typography from "@mui/material/Typography";
+import CircularProgress from "@mui/material/CircularProgress";
+import Stack from "@mui/material/Stack";
 
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import HomeIcon from "@mui/icons-material/Home";
 import PersonIcon from "@mui/icons-material/Person";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
 
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -54,11 +59,15 @@ export default function Home() {
 
   // キャッシュ: Map<boundsKey, Event[]>
   const cacheRef = useRef<Map<string, Event[]>>(new Map());
-  const router = useRouter(); 
+  const router = useRouter();
 
   const navHeight = 64; // px
+  const headerHeight = 72; // px
   const Tokyo: [number, number] = [35.6895, 139.6917];
   const [initialCenter, setInitialCenter] = useState<[number, number] | null>(Tokyo);
+  const [locating, setLocating] = useState(false);
+  const [points, setPoints] = useState<number | null>(null);
+  const [pointsLoading, setPointsLoading] = useState(false);
 
   // デバウンス処理: 500ms後に実際のデータ取得を実行
   const debouncedBounds = useDebounce(currentBounds, 500);
@@ -148,6 +157,66 @@ export default function Home() {
     setCurrentBounds(bounds);
   }, []);
 
+  // ユーザーの現在地に地図を移動するハンドラー
+  const handleLocateClick = useCallback(() => {
+    if (!navigator || !navigator.geolocation) {
+      alert("お使いのブラウザは位置情報に対応していません。");
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setInitialCenter([lat, lng]);
+        setLocating(false);
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+        alert("位置情報の取得に失敗しました。許可設定や端末の位置情報を確認してください。");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, []);
+
+  // 現在のユーザー情報（ポイント）を取得
+  useEffect(() => {
+    let mounted = true;
+    async function fetchMe() {
+      setPointsLoading(true);
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) {
+          // 未ログイン等 → ログインページへリダイレクト
+          if (mounted) {
+            setPoints(null);
+            try {
+              router.push('/login');
+            } catch (e) {
+              console.error('Redirect to /login failed', e);
+            }
+          }
+          return;
+        }
+        const data = await res.json();
+        if (mounted && data?.user?.points != null) {
+          setPoints(data.user.points);
+        }
+      } catch (err) {
+        console.error('Failed to fetch /api/me', err);
+        if (mounted) setPoints(null);
+      } finally {
+        if (mounted) setPointsLoading(false);
+      }
+    }
+    fetchMe();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
   // デバウンス後の範囲でデータ取得
   useEffect(() => {
     if (debouncedBounds) {
@@ -182,9 +251,78 @@ export default function Home() {
   }));
 
   return (
-    <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
+    <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden", bgcolor: "grey.100" }}>
+      {/* Header ad area */}
+      <Box
+      sx={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: `${headerHeight}px`,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        bgcolor: "grey",
+        zIndex: 1300,
+      }}
+      >
+      <span style={{ fontWeight: 600 }}>広告スペース</span>
+      </Box>
+
       {/* Map area */}
-      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: `calc(100vh - ${navHeight}px)` }}>
+      <Box sx={{ position: "absolute", top: `${headerHeight}px`, left: 0, right: 0, height: `calc(100vh - ${navHeight}px - ${headerHeight}px)` }}>
+        {/* 右上に現在地ボタンを重ねる */}
+        <IconButton
+          onClick={handleLocateClick}
+          disabled={locating}
+          size="large"
+          sx={{
+        position: "absolute",
+        top: 12,
+        right: 12,
+        bgcolor: "background.paper",
+        boxShadow: 3,
+        zIndex: 1400,
+        ":hover": { bgcolor: "background.paper" },
+          }}
+          aria-label="現在地に移動"
+        >
+          <MyLocationIcon sx={{ color: "#1976d2" }} />
+        </IconButton>
+
+        {/* 左下にポイント表示オーバーレイ */}
+        <Paper
+          elevation={3}
+          sx={{
+            position: 'absolute',
+            left: 12,
+            bottom: 12,
+            zIndex: 1400,
+            px: 1.25,
+            py: 0.5,
+            borderRadius: 1,
+            display: 'flex',
+            alignItems: 'center',
+            bgcolor: 'background.paper',
+          }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center">
+            {pointsLoading ? (
+              <CircularProgress size={36} />
+            ) : points != null ? (
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 500, fontSize: "1.8rem", lineHeight: 1, color: "primary.main" }}
+              >
+                {`${points}pt`}
+              </Typography>
+            ) : (
+              <Typography variant="body2" />
+            )}
+          </Stack>
+        </Paper>
+
         <LeafletMap
           center={initialCenter ?? Tokyo}
           zoom={13}

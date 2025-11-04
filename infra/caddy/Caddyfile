@@ -47,9 +47,9 @@ https://localhost {
         X-Frame-Options DENY
         X-Content-Type-Options nosniff
         Referrer-Policy no-referrer-when-downgrade
-    Cross-Origin-Opener-Policy same-origin
-    Cross-Origin-Embedder-Policy require-corp
-    Cross-Origin-Resource-Policy same-origin
+    #Cross-Origin-Opener-Policy same-origin
+    #Cross-Origin-Embedder-Policy require-corp
+    #Cross-Origin-Resource-Policy same-origin
     }
 
     # (dev) 静的直配信なし

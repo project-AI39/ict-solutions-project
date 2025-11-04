@@ -1,3 +1,6 @@
+//web\src\app\search\page.tsx
+//検索後に多くの条件を変更して再検索すると、エラーが出る。
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,6 +15,13 @@ import {
   ToggleButtonGroup,
   BottomNavigation,
   BottomNavigationAction,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Collapse,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import SearchIcon from "@mui/icons-material/Search";
@@ -19,10 +29,13 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { EventCard } from "@/app/search/components/EventCard";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 const round4 = (num: number) => Math.round(num * 100) / 100;
 const navHeight = 64;
+const Tokyo: [number, number] = [35.6895, 139.6917];
 
 export default function SearchPageMUI() {
   const [keyword, setKeyword] = useState("");
@@ -31,9 +44,12 @@ export default function SearchPageMUI() {
   const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [sort, setSort] = useState<"distance" | "time" | "new">("distance");
+  const [hidePast, setHidePast] = useState<boolean>(false);
   const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([35.6895, 139.6917]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(Tokyo);
   const [isSearching, setIsSearching] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true); // 初期は表示、検索成功後に閉じる
 
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -43,9 +59,9 @@ export default function SearchPageMUI() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setCurrentPos({ lat: latitude, lng: longitude });
+        setCurrentPos([latitude, longitude]);
         // selectedRadius があればそれも検索条件に含める
-        handleSearch({ lat: latitude, lng: longitude, radius: selectedRadius ?? undefined });
+        //handleSearch([ latitude, longitude ], selectedRadius ?? undefined });
       },
       (error) => {
         switch (error.code) {
@@ -60,7 +76,7 @@ export default function SearchPageMUI() {
             break;
           default:
             alert("位置情報の取得で不明なエラーが発生しました。");
-          }
+        }
       }
     );
   };
@@ -74,29 +90,32 @@ export default function SearchPageMUI() {
     setSelectedRadius(r);
   }
 
-  const handleSearch = async (pos?: [number, number], selectedRadius) => {
+  const handleSearch = async (pos?: [number, number], selectedRadius?: number | null) => {
     setIsSearching(true);
     try {
-      const res = await fetch("/api/searchs", { 
+      const res = await fetch("/api/searchs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          keyword, 
-          lat: pos?.[0] ?? 35.6895, 
-          lng: pos?.[1] ?? 139.6917, 
-          radius: selectedRadius ?? 999999, 
+        body: JSON.stringify({
+          keyword,
+          lat: pos?.[0] ?? 35.6895,
+          lng: pos?.[1] ?? 139.6917,
+          radius: selectedRadius ?? 999999,
           dateFrom, // ✅ 追加
           dateTo, // ✅ 追加 
+          sort,    // ✅ 追加（"distance" | "time" | "new"）
+          hidePast,           // ✅ 追加
         }),
-      }); 
+      });
       if (!res.ok) throw new Error("検索に失敗しました");
-      
+
       const data = await res.json();
-      setEvents(data); 
-    } catch (err) { 
-      console.error(err); 
-      alert("検索エラーが発生しました"); 
-    } 
+      setEvents(data);
+      setShowAdvanced(false); // ✅ 検索成功時に自動で条件を閉じる
+    } catch (err) {
+      console.error(err);
+      alert("検索エラーが発生しました");
+    }
   };
 
   // フォームの変更で isSearching をリセット
@@ -104,6 +123,29 @@ export default function SearchPageMUI() {
     if (isSearching) {
       setIsSearching(false);
     }
+    if (!navigator || !navigator.geolocation) {
+      setCurrentPos(Tokyo);
+      return;
+    }
+
+    let mounted = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!mounted) return;
+        const latlng: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setCurrentPos(latlng);
+      },
+      (err) => {
+        if (mounted) {
+          setCurrentPos(Tokyo);
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 1000 * 60 * 5, timeout: 10000 }
+    );
+
+    return () => {
+      mounted = false;
+    };
   }, [keyword, dateFrom, dateTo]);
 
   return (
@@ -118,86 +160,131 @@ export default function SearchPageMUI() {
             fullWidth
           />
 
-          {/* 現在地 + 半径選択 */}
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <Button variant="outlined" onClick={handleCurrentLocation} sx={{ flexShrink: 0 }}>
-              📍
-            </Button>
-            <Box
-              sx={{
-                overflowX: "auto",
-                display: "flex",
-                gap: 1,
-                "&::-webkit-scrollbar": { display: "none" },
-                scrollbarWidth: "none", // Firefox
-              }}
+          {/* 詳細条件トグル */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Button
+              variant="text"
+              size="small"
+              onClick={() => setShowAdvanced(v => !v)}
+              startIcon={showAdvanced ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              aria-expanded={showAdvanced}
+              aria-controls="advanced-filters"
             >
-              <ToggleButtonGroup
-                value={selectedRadius}
-                exclusive
-                onChange={(e, value) => {
-                  handleRadiusSelect(value);
-                  setIsSearching(true);
-                  handleSearch(currentPos ?? mapCenter, value); // value に選択された半径を渡す
-                }}
-                sx={{ display: "flex", gap: 1 }}
-              >
-                <ToggleButton value={null} sx={{ flexShrink: 0 }}>
-                  指定なし
-                </ToggleButton>
-                {[5, 10, 20, 50].map((r) => (
-                  <ToggleButton key={r} value={r} sx={{ flexShrink: 0 }}>
-                    {r} km
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </Box>
+              {showAdvanced ? "条件を閉じる" : "条件を開く"}
+            </Button>
           </Box>
+          <Collapse in={showAdvanced} timeout="auto" unmountOnExit>
 
-          {/* 日付選択 */}
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <TextField
-              label="開催日From"
-              type="date"
-              value={dateFrom}
-              onChange={(e) => {
-                setDateFrom(e.target.value)
-                // dateTo が存在してかつ dateFrom が dateTo より後なら補正
-                if (dateTo && new Date(e.target.value) > new Date(dateTo)) {
-                  setDateTo(e.target.value); 
+            {/* 現在地 + 半径選択 */}
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+              <Button variant="outlined" onClick={handleCurrentLocation} sx={{ flexShrink: 0 }}>
+                📍
+              </Button>
+              <Box
+                sx={{
+                  overflowX: "auto",
+                  display: "flex",
+                  gap: 1,
+                  "&::-webkit-scrollbar": { display: "none" },
+                  scrollbarWidth: "none", // Firefox
+                }}
+              >
+                <ToggleButtonGroup
+                  value={selectedRadius}
+                  exclusive
+                  onChange={(e, value) => {
+                    handleRadiusSelect(value);
+                    setIsSearching(true);
+                    handleSearch(currentPos ?? mapCenter, value); // value に選択された半径を渡す
+                  }}
+                  sx={{ display: "flex", gap: 1 }}
+                >
+                  <ToggleButton value={null} sx={{ flexShrink: 0 }}>
+                    指定なし
+                  </ToggleButton>
+                  {[5, 10, 20, 50].map((r) => (
+                    <ToggleButton key={r} value={r} sx={{ flexShrink: 0 }}>
+                      {r} km
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
+            </Box>
+
+            {/* 日付選択 */}
+            <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+              <TextField
+                label="開催日From"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setDateFrom(e.target.value)
+                  // dateTo が存在してかつ dateFrom が dateTo より後なら補正
+                  if (dateTo && new Date(e.target.value) > new Date(dateTo)) {
+                    setDateTo(e.target.value);
+                  }
+                }}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="開催日To"
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value)
+                  // dateFrom が存在してかつ dateTo が dateFrom より前なら補正
+                  if (dateFrom && new Date(e.target.value) < new Date(dateFrom)) {
+                    setDateFrom(e.target.value);
+                  }
+                }}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+            </Box>
+
+
+            {/* 終了イベントを除外＋並び替え */}
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={hidePast}
+                    onChange={(e) => setHidePast(e.target.checked)}
+                  />
                 }
-              }}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-            />
-            <TextField
-              label="開催日To"
-              type="date"
-              value={dateTo}
-              onChange={(e) =>{
-                setDateTo(e.target.value)
-                // dateFrom が存在してかつ dateTo が dateFrom より前なら補正
-                if (dateFrom && new Date(e.target.value) < new Date(dateFrom)) {
-                  setDateFrom(e.target.value); 
-                }
-              }}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-            />
-          </Box>
+                label="終了したイベントを除外"
+              />
+              <FormControl fullWidth>
+                <InputLabel id="sort-label">並び替え</InputLabel>
+                <Select
+                  labelId="sort-label"
+                  label="並び替え"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as "distance" | "time" | "new")}
+                >
+                  <MenuItem value="distance">距離が近い順</MenuItem>
+                  <MenuItem value="time">開催日が近い順</MenuItem>
+                  <MenuItem value="new">新着順</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Collapse>
 
           <Button
             variant="contained"
             onClick={() => {
+              // すでに検索中だったら → 戻る処理を先にやる
               if (isSearching) {
-                setEvents([]);        // 検索結果を消す
+                setEvents([]);
                 setIsSearching(false);
-              } else {
-                handleSearch(currentPos ?? mapCenter, selectedRadius);
               }
+
+              // その後 必ず検索する
+              handleSearch(currentPos ?? mapCenter, selectedRadius);
             }}
           >
-            {isSearching ? "戻る" : "🔍 検索する"}
+            🔍 検索する
           </Button>
         </Box>
       </Paper>
@@ -205,7 +292,7 @@ export default function SearchPageMUI() {
       {/* 地図 + 検索結果オーバーレイ */}
       <Box sx={{ flex: 1, position: "relative", pb: `${navHeight}px` }}>
         <LeafletMap
-          center={mapCenter}
+          center={currentPos ?? mapCenter}
           zoom={13}
           markers={events.map((ev) => ({ id: ev.id, position: [ev.latitude, ev.longitude], title: ev.title }))}
           onClick={(latlng) => setMapCenter([latlng.latitude, latlng.longitude])}
