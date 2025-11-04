@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState, useMemo, useCallback } from 'react';
 import type { LatLngTuple } from 'leaflet'; 
 import type { MapClickMarkerProps } from '@/components/MapClickMarker'; 
+import { useRouter } from 'next/navigation';
 
 // =========================================================
 // Dynamic Import
@@ -17,7 +18,7 @@ const DynamicClickableMap = dynamic(() => import('@/components/MapClickMarker'),
 // イベント投稿ページのメインコンポーネント
 // =========================================================
 export default function PostEventPage() {
-  
+  const router = useRouter();
   // 1. ステップ管理用のステート
   const [step, setStep] = useState(1);
 
@@ -25,6 +26,8 @@ export default function PostEventPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    eventstartDay: '',
+    eventfinishDay: '',
     latitude: null as number | null, 
     longitude: null as number | null,
     image: null as File | null, 
@@ -61,45 +64,58 @@ export default function PostEventPage() {
     }
   };
 
+  const handleRemoveImage = useCallback(() => {
+    setFormData(prev => ({ ...prev, image: null }));
+    // ファイル入力の値をリセット
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = ""; // 値をクリア
+    }
+  }, []); // 依存配列は空でOK
+
   // =========================================================
   // --- 最終送信ハンドラ (API呼び出し) ---
   // =========================================================
-  const handleSubmit = async (e: React.FormEvent) => { // 👈 async を追加
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 既に読み込み中なら何もしない
     if (isLoading) return;
 
-    // フォームバリデーション（handleSubmit内でも行うと安全）
-    if (!formData.title || !formData.description || !formData.latitude || !formData.longitude) {
-        alert("必須項目（タイトル、詳細、場所）が入力されていません。");
-        // エラーが発生したステップに戻す（任意）
-        // if (!formData.title || !formData.description) setStep(1);
-        // else if (!formData.latitude) setStep(2);
+    // フォームバリデーション
+    if (!formData.title || !formData.latitude || !formData.longitude || !formData.eventstartDay || !formData.eventfinishDay) {
+        // descriptionは任意なのでバリデーションから除外
+        alert("必須項目（タイトル、開始日、終了日、場所）が入力されていません。");
+        if (!formData.title) setStep(1);
+        else if (!formData.latitude) setStep(2);
         return;
     }
 
     // 読み込み開始
     setIsLoading(true);
 
-    // 1. APIに送信するデータ（画像以外）を準備
-    const dataToSend = {
-      title: formData.title,
-      description: formData.description,
-      latitude: formData.latitude,
-      longitude: formData.longitude,
-      // ⚠️ 画像はまだ送信していません
-      // imageUrl: null (API側で処理される想定)
-    };
+    // 1. データを「FormData」（小包）に詰める
+    const dataToSend = new FormData();
+    dataToSend.append('title', formData.title);
+    // descriptionは任意（''の場合もある）
+    dataToSend.append('description', formData.description || ''); 
+    dataToSend.append('eventstartDay',formData.eventstartDay);
+    dataToSend.append('eventfinishDay',formData.eventfinishDay);
+    dataToSend.append('latitude', String(formData.latitude));
+    dataToSend.append('longitude', String(formData.longitude));
+
+    // 画像ファイルが存在する場合のみ、小包に入れる
+    if (formData.image) {
+      dataToSend.append('image', formData.image);
+    }
 
     try {
       // 2. APIエンドポイントにデータをPOSTで送信
       const response = await fetch('/api/events', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend),
+        // ⚠️ 'Content-Type' ヘッダーは削除する！
+        // (ブラウザがFormDataを使うと自動で正しいヘッダーを付けてくれます)
+        body: dataToSend, // 👈 JSON.stringify ではなく FormData をそのまま渡す
       });
 
       if (!response.ok) {
@@ -115,9 +131,10 @@ export default function PostEventPage() {
       
       // フォームを初期化して最初のステップに戻る
       setFormData({
-          title: '', description: '', latitude: null, longitude: null, image: null,
+          title: '', description: '', eventstartDay: '', eventfinishDay: '', latitude: null, longitude: null, image: null,
       });
-      setStep(1);
+      //ホーム画面に遷移
+      router.push('/');
 
     } catch (error) {
       // 4. ネットワークエラーやその他のエラー
@@ -138,27 +155,57 @@ export default function PostEventPage() {
     <div className="container mx-auto p-4 max-w-2xl">
       <div className="space-y-6 bg-white p-6 rounded-lg shadow-lg">
         
-        {/* --- ステップ 1: イベント情報入力 --- (変更なし) */}
+        {/* --- ステップ 1: イベント情報入力 ---  */}
         {step === 1 && (
           <form onSubmit={handleNext}>
             <h1 className="text-3xl font-bold mb-6 text-gray-800">イベント情報入力</h1>
             
+            {/* title */}
             <div className="mb-4">
               <label htmlFor="title" className="block text-sm font-medium text-gray-700">イベント名</label>
               <input
                 type="text" name="title" id="title"
                 value={formData.title} onChange={handleFormChange}
-                placeholder="例: 社内ハッカソン 2025" required
+                placeholder="例: ハッカソン 2025" required
                 className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
+            {/* eventstartDay */}
+            <div>
+              <label htmlFor="eventstartDay" className="block text-sm font-medium text-gray-700">イベント開始日</label>
+              <input
+                type="date"
+                name="eventstartDay"
+                id="eventstartDay"
+                value={formData.eventstartDay}
+                onChange={handleFormChange}
+                required
+                className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            {/* eventfinishDay */}
+            <div className="mb-4">
+              <label htmlFor="eventfinishDay" className="block text-sm font-medium text-gray-700">イベント終了日</label>
+              <input
+                type="date" 
+                name="eventfinishDay"
+                id="eventfinishDay"
+                value={formData.eventfinishDay}
+                onChange={handleFormChange} 
+                required
+                className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            {/* description */}
             <div className="mb-6">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700">詳細</label>
               <textarea
                 name="description" id="description" rows={4}
                 value={formData.description} onChange={handleFormChange}
-                placeholder="イベントの目的、日時、参加対象などを詳しく記述" required
+                placeholder="例: 有意義な時間を過ごすことができました。"
                 className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
@@ -172,7 +219,7 @@ export default function PostEventPage() {
           </form>
         )}
 
-        {/* --- ステップ 2: 地図で場所を選択 --- (変更なし) */}
+        {/* --- ステップ 2: 地図で場所を選択 --- */}
         {step === 2 && (
           <div>
             <h1 className="text-3xl font-bold mb-6 text-gray-800">開催場所を選択</h1>
@@ -206,7 +253,7 @@ export default function PostEventPage() {
           </div>
         )}
 
-        {/* --- ステップ 3: 写真追加 --- (変更なし) */}
+        {/* --- ステップ 3: 写真追加 ---  */}
         {step === 3 && (
           <div>
             <h1 className="text-3xl font-bold mb-6 text-gray-800">写真を追加</h1>
@@ -215,6 +262,7 @@ export default function PostEventPage() {
             <input
               type="file"
               accept="image/*"
+              id="image-upload"
               onChange={handleImageChange}
               className="block w-full text-sm text-gray-500
                          file:mr-4 file:py-2 file:px-4
@@ -225,7 +273,17 @@ export default function PostEventPage() {
             />
             
             {formData.image && (
-              <div className="mt-6 border rounded-lg overflow-hidden">
+              <div className="mt-6 border rounded-lg overflow-hidden relative">
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 z-10 p-1 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-80 transition-opacity"
+                  aria-label="画像を削除"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
                 <img 
                   src={URL.createObjectURL(formData.image)} 
                   alt="選択された画像のプレビュー" 
