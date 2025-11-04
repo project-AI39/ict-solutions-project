@@ -3,27 +3,26 @@ import { prisma } from "@/lib/prisma";
 
 import fs from "fs/promises";
 import path from "path";
-import { z, ZodError } from "zod"; //npm install zod
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.JWT_SECRET || "DEV_SECRET_KEY";
 
 // フォームデータの型を定義
-const eventFormSchema = z.object({
-  title: z.string().min(1, { message: "タイトルは必須です" }),
-  description: z.preprocess(
-    (val) => (val === '' ? null : val), // 空文字をnullに変換
-    z.string().nullable().optional()     // null または string を許容
-  ),
-  latitude: z.coerce.number(),
-  longitude: z.coerce.number(),
-  image: z.preprocess(
-    (val) => (val === null ? null : val), // null をそのまま許可
-    z.instanceof(File).nullable().optional() // null または File を許容
-  ),
-  eventstartDay: z.string().min(1, { message: "開始日は必須です" }),
-  eventfinishDay: z.string().min(1, { message: "終了日は必須です" }),
-});
+// const eventFormSchema = z.object({
+//   title: z.string().min(1, { message: "タイトルは必須です" }),
+//   description: z.preprocess(
+//     (val) => (val === '' ? null : val), // 空文字をnullに変換
+//     z.string().nullable().optional()     // null または string を許容
+//   ),
+//   latitude: z.coerce.number(),
+//   longitude: z.coerce.number(),
+//   image: z.preprocess(
+//     (val) => (val === null ? null : val), // null をそのまま許可
+//     z.instanceof(File).nullable().optional() // null または File を許容
+//   ),
+//   eventstartDay: z.string().min(1, { message: "開始日は必須です" }),
+//   eventfinishDay: z.string().min(1, { message: "終了日は必須です" }),
+// });
 
 /**
  * POST /api/events
@@ -54,21 +53,91 @@ export async function POST(request: NextRequest) {
 
     // FormData処理とバリデーション
     const formData = await request.formData();
-    const parsedData = eventFormSchema.safeParse({
-      title: formData.get('title'),
-      description: formData.get('description'),
-      latitude: formData.get('latitude'),
-      longitude: formData.get('longitude'),
-      image: formData.get('image'),
-      eventstartDay: formData.get('eventstartDay'),
-      eventfinishDay: formData.get('eventfinishDay'),
-    });
-    if (!parsedData.success) {
-      return NextResponse.json({ message: 'データ形式が正しくありません', errors: parsedData.error.errors }, { status: 400 });
-    }
-    const { title, description, latitude, longitude, image, eventstartDay, eventfinishDay} = parsedData.data;
 
-    // 画像保存処理
+    const errors: { field: string, message: string }[] = [];
+
+    const titleValue = formData.get('title');
+    let title: string;
+    if (typeof titleValue === 'string' && titleValue.trim() !== '') {
+      title = titleValue;
+    } else {
+      errors.push({ field: 'title', message: 'タイトルは必須です' });
+      title = ''; // エラーだが型推論のため代入
+    }
+
+    const descriptionValue = formData.get('description');
+    let description: string | null = null;
+    if (typeof descriptionValue === 'string' && descriptionValue !== '') {
+      description = descriptionValue;
+    }
+
+    // 'latitude' のバリデーション (number, 必須)
+    const latitudeValue = formData.get('latitude');
+    let latitude: number;
+    const latNum = parseFloat(String(latitudeValue)); // 'latitude' が null でも String() は "null" にする
+    if (latitudeValue !== null && !isNaN(latNum)) {
+      latitude = latNum;
+    } else {
+      errors.push({ field: 'latitude', message: '緯度が無効な値です' });
+      latitude = 0; // エラーだが型推論のため代入
+    }
+
+    // 'longitude' のバリデーション (number, 必須)
+    const longitudeValue = formData.get('longitude');
+    let longitude: number;
+    const lngNum = parseFloat(String(longitudeValue));
+    if (longitudeValue !== null && !isNaN(lngNum)) {
+      longitude = lngNum;
+    } else {
+      errors.push({ field: 'longitude', message: '経度が無効な値です' });
+      longitude = 0; // エラーだが型推論のため代入
+    }
+
+    // 'image' のバリデーション (File | null)
+    // formData.get() は File オブジェクトか、 "null"(string) か、 null(JS) を返す
+    const imageValue = formData.get('image');
+    let image: File | null = null;
+    
+    if (imageValue === null) {
+        // 添付なし (JSのnull)
+        image = null;
+    } else if (imageValue instanceof File) {
+        // Fileオブジェクト
+        image = imageValue;
+    } else {
+        // "null"(string) や ""(string) やその他の値が来た場合
+        // 元のZodスキーマではこれらはエラーとなる
+        errors.push({ field: 'image', message: '画像データ形式が正しくありません (Fileまたはnullである必要があります)' });
+    }
+
+    // 'eventstartDay' のバリデーション (string, 必須)
+    const eventstartDayValue = formData.get('eventstartDay');
+    let eventstartDay: string;
+    if (typeof eventstartDayValue === 'string' && eventstartDayValue.trim() !== '') {
+      eventstartDay = eventstartDayValue;
+    } else {
+      errors.push({ field: 'eventstartDay', message: '開始日は必須です' });
+      eventstartDay = ''; // エラーだが型推論のため代入
+    }
+
+    // 'eventfinishDay' のバリデーション (string, 必須)
+    const eventfinishDayValue = formData.get('eventfinishDay');
+    let eventfinishDay: string;
+    if (typeof eventfinishDayValue === 'string' && eventfinishDayValue.trim() !== '') {
+      eventfinishDay = eventfinishDayValue;
+    } else {
+      errors.push({ field: 'eventfinishDay', message: '終了日は必須です' });
+      eventfinishDay = ''; // エラーだが型推論のため代入
+    }
+
+    // バリデーションエラーがあれば、400を返す
+    if (errors.length > 0) {
+      return NextResponse.json({ message: 'データ形式が正しくありません', errors: errors }, { status: 400 });
+    }
+    // --- 🔼 手動バリデーションここまで 🔼 ---
+
+
+    // 画像保存処理 (変更なし)
     let imageUrl: string | null = null;
     if (image) {
       const filename = `${Date.now()}-${image.name.replace(/\s+/g, '_')}`;
