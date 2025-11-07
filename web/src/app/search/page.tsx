@@ -149,7 +149,7 @@ export default function SearchPageMUI() {
   }, [keyword, dateFrom, dateTo]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflowX: "hidden" }}>
       {/* 検索フォーム */}
       <Paper sx={{ p: 2, mb: 1 }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
