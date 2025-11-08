@@ -37,6 +37,37 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
+
+// 🔹 GET: ログイン中ユーザー情報取得
+export async function GET(req: NextRequest) {
+  const uid = getUserIdFromRequest(req);
+  if (!uid) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: uid },
+      select: {
+        username: true,
+        email: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ user });
+  } catch (e) {
+    console.error("GET /api/users/me failed:", e);
+    return NextResponse.json(
+      { message: "取得に失敗しました" },
+      { status: 500 }
+    );
+  }
+}
+
 // 🔹 DELETE: アカウント削除
 export async function DELETE(req: NextRequest) {
   const uid = getUserIdFromRequest(req);

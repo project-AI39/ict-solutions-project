@@ -73,12 +73,23 @@ export default function SettingsPage() {
   const [showPw1, setShowPw1] = React.useState(false);
   const [showPw2, setShowPw2] = React.useState(false);
 
+  const [emailDialogOpen, setEmailDialogOpen] = React.useState(false);
+  const [emailInput, setEmailInput] = React.useState("");
+  const [emailError, setEmailError] = React.useState<string | null>(null);
+
+  const openEmailDialog = () => {
+    if (profile) setEmailInput(profile?.email ?? "");
+    setEmailError(null);
+    setEmailDialogOpen(true);
+  };
+
+
   // 初期ユーザー取得
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/me", { credentials: "include" });
+        const res = await fetch("/api/users/me", { credentials: "include" });
         if (!res.ok) throw new Error("unauth");
         const { user } = await res.json();
         const u: User = { email: user.email, name: user.username };
@@ -131,6 +142,46 @@ export default function SettingsPage() {
       setToast({ open: true, msg: "ユーザー名の更新に失敗しました", type: "error" });
     }
   }
+
+  // ==== メール編集 ====
+
+  async function saveEmail(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!profile) return;
+
+    const trimmed = emailInput.trim();
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+
+    if (!trimmed || !isValid) {
+      setEmailError("メールアドレスの形式が正しくありません。");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/users/change-email", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: trimmed }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 409 && data?.message === "email-conflict") {
+          setEmailError("このメールアドレスは既に使用されています。");
+          return;
+        }
+        throw new Error("update-failed");
+      }
+
+      setProfile({ ...(profile as any), email: trimmed.toLowerCase() });
+      setToast({ open: true, msg: "メールアドレスを更新しました", type: "success" });
+      setEmailDialogOpen(false);
+    } catch {
+      setToast({ open: true, msg: "メールアドレスの更新に失敗しました", type: "error" });
+    }
+  }
+
 
   // 保存：パスワード
   async function savePassword(e?: React.FormEvent) {
@@ -230,6 +281,19 @@ export default function SettingsPage() {
                 </ListItem>
                 <Divider component="li" />
 
+                {/* メールアドレス（表示） */}
+                <ListItem
+                  disableGutters
+                  secondaryAction={
+                    <IconButton edge="end" aria-label="edit-email" onClick={openEmailDialog}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  }
+                >
+                  <ListItemText primary="メールアドレス" secondary={profile?.email ?? "-"} />
+                </ListItem>
+                <Divider component="li" />
+
                 {/* パスワード（表示） */}
                 <ListItem
                   disableGutters
@@ -281,6 +345,32 @@ export default function SettingsPage() {
           </DialogActions>
         </form>
       </Dialog>
+
+      {/* メール編集ダイアログ */}
+      <Dialog open={emailDialogOpen} onClose={() => setEmailDialogOpen(false)} fullWidth maxWidth="sm">
+        <form onSubmit={saveEmail}>
+          <DialogTitle>メールアドレスを編集</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="新しいメールアドレス"
+              type="email"
+              fullWidth
+              autoComplete="email"
+              value={emailInput ?? ""}
+              onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
+              error={!!emailError}
+              helperText={emailError ?? ""}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEmailDialogOpen(false)}>キャンセル</Button>
+            <Button type="submit" variant="contained" startIcon={<SaveIcon />}>保存</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
 
       {/* パスワード編集ダイアログ */}
       <Dialog open={pwDialogOpen} onClose={() => setPwDialogOpen(false)} fullWidth maxWidth="sm">
