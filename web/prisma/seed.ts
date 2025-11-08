@@ -4,16 +4,16 @@ const prisma = new PrismaClient();
 
 // テスト用: パスワードはプレーン文字列で保存する（本番ではハッシュ必須）
 const USERS = [
-  { id: 'usr_1', username: 'alice', password: 'alice_pass', points: 10 },
-  { id: 'usr_2', username: 'bob', password: 'bob_pass', points: 5 },
-  { id: 'usr_3', username: 'carol', password: 'carol_pass', points: 0 },
-  { id: 'usr_4', username: 'dave', password: 'dave_pass', points: 2 },
-  { id: 'usr_5', username: 'eve', password: 'eve_pass', points: 7 },
-  { id: 'usr_6', username: 'frank', password: 'frank_pass', points: 1 },
-  { id: 'usr_7', username: 'grace', password: 'grace_pass', points: 3 },
-  { id: 'usr_8', username: 'heidi', password: 'heidi_pass', points: 4 },
-  { id: 'usr_9', username: 'ivan', password: 'ivan_pass', points: 6 },
-  { id: 'usr_10', username: 'judy', password: 'judy_pass', points: 8 },
+  { id: 'usr_1', username: 'alice', email: 'alice@email.com', password: 'alice_pass', points: 10 },
+  { id: 'usr_2', username: 'bob', email: 'bob@email.com', password: 'bob_pass', points: 5 },
+  { id: 'usr_3', username: 'carol', email: 'carol@email.com', password: 'carol_pass', points: 0 },
+  { id: 'usr_4', username: 'dave', email: 'dave@email.com', password: 'dave_pass', points: 2 },
+  { id: 'usr_5', username: 'eve', email: 'eve@email.com', password: 'eve_pass', points: 7 },
+  { id: 'usr_6', username: 'frank', email: 'frank@email.com', password: 'frank_pass', points: 1 },
+  { id: 'usr_7', username: 'grace', email: 'grace@email.com', password: 'grace_pass', points: 3 },
+  { id: 'usr_8', username: 'heidi', email: 'heidi@email.com', password: 'heidi_pass', points: 4 },
+  { id: 'usr_9', username: 'ivan', email: 'ivan@email.com', password: 'ivan_pass', points: 6 },
+  { id: 'usr_10', username: 'judy', email: 'judy@email.com', password: 'judy_pass', points: 8 },
 ];
 
 const EVENTS = [
@@ -226,7 +226,7 @@ const EVENTS = [
     eventfinishDay: new Date("2025-11-01"),
     authorId: "usr_9",
   },
-    {
+  {
     id: "evt_20",
     title: "陶芸体験 (笠間)",
     description: "茨城県笠間で伝統的な陶芸を体験",
@@ -446,7 +446,7 @@ const EVENTS = [
     eventfinishDay: new Date("2025-12-07"),
     authorId: "usr_10",
   },
-    {
+  {
     id: "evt_40",
     title: "かみね公園ピクニック (日立)",
     description: "日立市のかみね公園でのんびりピクニック",
@@ -501,7 +501,7 @@ const EVENTS = [
     eventfinishDay: new Date("2025-12-31"),
     authorId: "usr_9",
   },
-    {
+  {
     id: "evt_45",
     title: "研究室公開デー (茨城大学工学部)",
     description: "茨城大学工学部の研究室を一般公開！学生の研究成果を紹介します",

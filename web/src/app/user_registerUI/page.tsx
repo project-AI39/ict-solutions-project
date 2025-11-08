@@ -37,6 +37,7 @@ function getPasswordStrength(password: string): { score: number; label: string; 
 export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -50,10 +51,12 @@ export default function RegisterPage() {
 
   // バリデーション
   const usernameError = username.length > 0 && (username.length < 3 || username.length > 20);
+  const emailError = email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordError = pw.length > 0 && pw.length < 8;
   const isFormValid =
     username.length >= 3 &&
     username.length <= 20 &&
+    !emailError && email.length > 0 &&
     pw.length >= 8 &&
     passwordsMatch &&
     !loading;
@@ -76,6 +79,11 @@ export default function RegisterPage() {
       setErr('ユーザー名は半角英数字とアンダースコアのみ使用できます。');
       return;
     }
+
+    if (!email.trim() || emailError) {
+      return setErr('メールアドレスの形式が正しくありません。');
+    }
+
     if (pw.length < 8) {
       setErr('パスワードは8文字以上で入力してください。');
       return;
@@ -90,7 +98,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/user_register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password: pw }),
+        body: JSON.stringify({ username, email, password: pw }),
       });
 
       if (!res.ok) {
@@ -164,6 +172,19 @@ export default function RegisterPage() {
                 'aria-label': 'ユーザー名',
                 maxLength: 20,
               }}
+            />
+
+            {/* 追加: メールアドレス */}
+            <TextField
+              label="メールアドレス"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              fullWidth
+              autoComplete="email"
+              error={emailError}
+              helperText={emailError ? 'メールアドレスの形式が正しくありません' : '連絡用に使用します'}
+              inputProps={{ 'aria-label': 'メールアドレス' }}
             />
 
             <Box>
