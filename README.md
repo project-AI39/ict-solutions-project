@@ -44,7 +44,34 @@ ict-solutions-project  |  GET / 200 in 1702ms
 
 ![アーキテクチャ環境図](docs/アーキテクチャ環境図.png)
 
-## 📄 詳細ドキュメント
+## � 開発時の注意事項
+
+### コード品質チェック
+
+PR作成前やビルド前には必ず以下のコマンドでチェックしてください:
+
+```powershell
+# ESLint + TypeScript型チェック
+docker exec -it ict-solutions-project bash -c "cd /workspace/web && npm run typecheck && npm run lint"
+```
+
+詳細は `docs/環境構築手順.md` の「ビルド前のコード品質チェック」を参照してください。
+
+### 本番ビルド
+
+本番用の最適化されたビルドを実行する場合:
+
+```powershell
+.\scripts\prod.ps1
+```
+
+開発モードに戻す:
+
+```powershell
+.\scripts\dev.ps1
+```
+
+## �📄 詳細ドキュメント
 
 - プロジェクト概要: `docs/プロジェクト内容.md`
 - 採用技術: `docs/採用技術.md`

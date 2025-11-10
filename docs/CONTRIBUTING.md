@@ -139,6 +139,71 @@ BREAKING CHANGE: 旧エンドポイント /v1/stats を廃止。
 
 ---
 
+## コード品質チェック
+
+PR作成前およびコミット前に、必ず以下のコマンドでコードの品質をチェックしてください。
+
+### 前提条件
+
+開発コンテナが起動していることを確認してください:
+
+```powershell
+docker ps | findstr ict-solutions-project
+```
+
+### チェックコマンド
+
+#### ESLint チェック（コーディング規約）
+
+```powershell
+docker exec -it ict-solutions-project bash -c "cd /workspace/web && npm run lint"
+```
+
+- コーディング規約違反、未使用変数、潜在的なバグなどをチェック
+- **エラー・警告がゼロであることが必須**
+
+#### TypeScript 型チェック
+
+```powershell
+docker exec -it ict-solutions-project bash -c "cd /workspace/web && npm run typecheck"
+```
+
+- 型の不一致、未定義の変数、型推論の問題などをチェック
+- **エラーがゼロであることが必須**
+
+#### 両方を一度に実行
+
+```powershell
+docker exec -it ict-solutions-project bash -c "cd /workspace/web && npm run typecheck && npm run lint"
+```
+
+### チェック失敗時の対応
+
+1. **ESLint エラー**:
+   - エラーメッセージのファイル名と行番号を確認
+   - 該当箇所を修正（未使用変数の削除、コーディング規約の遵守など）
+   - 再度 `npm run lint` を実行して確認
+
+2. **TypeScript エラー**:
+   - 型エラーのメッセージを確認
+   - 該当箇所の型定義を修正
+   - 再度 `npm run typecheck` を実行して確認
+
+3. **すべてのチェックがパスするまで修正を繰り返す**
+
+### PR作成時のチェックリスト
+
+- [ ] `npm run typecheck` がエラーなしで完了
+- [ ] `npm run lint` がエラー・警告なしで完了
+- [ ] 開発環境で動作確認済み
+- [ ] 可能であれば本番ビルド（`.\scripts\prod.ps1`）でも動作確認
+
+### 自動化（推奨）
+
+Git hooks（husky など）を使用して、コミット前に自動チェックを実行することを推奨します（今後導入予定）。
+
+---
+
 ## ブランチ運用ルール
 
 ブランチ名の一貫性と可読性を高め、自動化・検索・トレーサビリティを向上させることを目的とします。
