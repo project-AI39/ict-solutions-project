@@ -51,9 +51,13 @@ function getBoundsKey(bounds: LatLngBounds): string {
   return `${minLat},${minLng},${maxLat},${maxLng}`;
 }
 
+// 定数を関数外で定義
+const Tokyo: [number, number] = [35.6895, 139.6917];
+
 export default function Home() {
   const [value, setValue] = useState(0);
   const [events, setEvents] = useState<Event[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
   const [currentBounds, setCurrentBounds] = useState<LatLngBounds | null>(null);
 
@@ -63,7 +67,6 @@ export default function Home() {
 
   const navHeight = 64; // px
   const headerHeight = 72; // px
-  const Tokyo: [number, number] = [35.6895, 139.6917];
   const [initialCenter, setInitialCenter] = useState<[number, number] | null>(Tokyo);
   const [locating, setLocating] = useState(false);
   const [points, setPoints] = useState<number | null>(null);
@@ -237,6 +240,7 @@ export default function Home() {
           <p style={{ margin: "0 0 8px 0" }}>{event.description}</p>
         )}
         {event.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={event.imageUrl}
             alt={event.title}

@@ -2,7 +2,6 @@
 "use client";
 import dynamic from "next/dynamic";
 import { Box, Typography, Button } from "@mui/material";
-import { useState } from "react";
 import Link from "next/link";
 
 // ✅ MiniMap を SSR 無効で動的読み込み（サーバーに載せない）
@@ -10,8 +9,19 @@ const MiniMap = dynamic(() => import("./MiniMap").then(m => m.MiniMap), {
   ssr: false,
 });
 
-export function EventCard({ id, title, distance, sdate, fdate, lat, lng, description }) {
-  const [showDetail, setShowDetail] = useState(false);
+// 型定義を追加
+interface EventCardProps {
+  id: string;
+  title: string;
+  distance: number;
+  sdate: string | Date;
+  fdate: string | Date;
+  lat: number | null;
+  lng: number | null;
+  description?: string | null;
+}
+
+export function EventCard({ id, title, distance, sdate, fdate, lat, lng }: EventCardProps) {
 
   const jpStart = new Date(sdate).toLocaleDateString("ja-JP", {
     month: "numeric",

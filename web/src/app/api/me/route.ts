@@ -12,14 +12,6 @@ function preview(v: unknown, len = 12) {
   if (!s) return String(v);
   return s.length <= len ? s : `${s.slice(0, len)}…(${s.length})`;
 }
-function safeJson(v: unknown, max = 500) {
-  try {
-    const s = JSON.stringify(v);
-    return s.length <= max ? s : s.slice(0, max) + "…(truncated)";
-  } catch {
-    return String(v);
-  }
-}
 
 /** JWT or DEV_ASSUME_USER_ID から userId を取り出す（寛容化） */
 function pickUserId(req: NextRequest): string | null {

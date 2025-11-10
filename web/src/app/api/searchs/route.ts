@@ -10,7 +10,13 @@ export async function POST(req: NextRequest) {
   // --------------------------
   // 🔍 条件生成
   // --------------------------
-  const eventFilter: any = {};
+  type EventFilter = {
+    AND?: Array<Record<string, unknown>>;
+    eventfinishDay?: { gte: Date };
+    eventstartDay?: { lte: Date };
+  };
+  
+  const eventFilter: EventFilter = {};
 
   // ✅ 開催期間フィルタ
   if (dateFrom && dateTo) {

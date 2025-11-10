@@ -1,5 +1,6 @@
 // src/app/events/[id]/page.tsx
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import CommentsSection from "@/components/CommentsSection";
@@ -41,9 +42,9 @@ export default async function EventDetailPage(
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 bg-white text-black min-h-screen">
-      <a href="/" className="text-sm underline mb-4 inline-block text-black">
+      <Link href="/" className="text-sm underline mb-4 inline-block text-black">
         ← ホームに戻る
-      </a>
+      </Link>
 
       {IS_TEST_CLIENT && (
         // ==== TEST-ONLY: ページ上部のバナー ====================

@@ -79,9 +79,10 @@ export default function UserPage() {
                     setUserPoints(meData.user?.points || 0);
                     setLoading(false);
                 }
-            } catch (err: any) {
+            } catch (err) {
                 if (mounted) {
-                    setError(err.message || 'データの取得に失敗しました');
+                    const message = err instanceof Error ? err.message : 'データの取得に失敗しました';
+                    setError(message);
                     setLoading(false);
                 }
             }
@@ -122,8 +123,9 @@ export default function UserPage() {
             setUserPoints(data.remainingPoints);
             setPointsToUse('');
             setUsePointsSuccess(`${data.usedPoints}ポイントを使用しました！`);
-        } catch (err: any) {
-            setUsePointsError(err.message || 'ポイントの使用に失敗しました');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'ポイントの使用に失敗しました';
+            setUsePointsError(message);
         } finally {
             setUsePointsLoading(false);
         }

@@ -13,6 +13,10 @@ services:
     stdin_open: true
     restart: unless-stopped
     environment:
+      # --- 実行モード切替 (開発 / 本番) ---
+      # NODE_ENV: development (デフォルト) / production (本番ビルド)
+      NODE_ENV: ${NODE_ENV:-development}
+      
       # --- DB 初期化関連 (entrypoint.sh が参照) ---
       DB_NAME: appdb       # 初期作成 DB 名
       DB_USER: appuser     # アプリ用ロール

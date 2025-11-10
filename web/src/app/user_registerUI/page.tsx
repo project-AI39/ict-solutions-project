@@ -108,12 +108,16 @@ export default function RegisterPage() {
 
       setOk('登録が完了しました。ログインページへ移動します。');
       setTimeout(() => router.push('/login'), 1500);
-    } catch (e: any) {
+    } catch (e) {
       // ネットワークエラーの場合
-      if (e?.message === 'Failed to fetch') {
-        setErr('ネットワークエラーが発生しました。接続を確認してください。');
+      if (e instanceof Error) {
+        if (e.message === 'Failed to fetch') {
+          setErr('ネットワークエラーが発生しました。接続を確認してください。');
+        } else {
+          setErr(e.message);
+        }
       } else {
-        setErr(e?.message ?? 'エラーが発生しました。');
+        setErr('エラーが発生しました。');
       }
     } finally {
       setLoading(false);

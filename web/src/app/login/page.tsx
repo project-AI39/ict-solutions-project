@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Box,
   TextField,
   Button,
-  Checkbox,
-  FormControlLabel,
   Typography,
   IconButton,
   InputAdornment,
@@ -20,7 +19,6 @@ export default function LoginForm() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [remember, setRemember] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,10 +34,6 @@ export default function LoginForm() {
     setLoading(false);
 
     if (res.ok) {
-      const data = await res.json();
-      if (remember) localStorage.setItem("token", data.token);
-      else sessionStorage.setItem("token", data.token);
-
       router.push("/");
     } else {
       setError("ユーザー名またはパスワードが間違っています");
@@ -73,11 +67,13 @@ export default function LoginForm() {
           alignItems: "center",
         }}
       >
-        <Box sx={{ mb: 3 }}>
-          <img
+        <Box sx={{ mb: 3, width: 100, height: 100, position: "relative", borderRadius: "50%", overflow: "hidden" }}>
+          <Image
             src="/login/icon.png"
             alt="アプリアイコン"
-            style={{ width: 100, height: 100, borderRadius: "50%" }}
+            width={100}
+            height={100}
+            style={{ objectFit: "cover" }}
           />
         </Box>
 

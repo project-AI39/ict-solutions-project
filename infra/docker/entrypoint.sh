@@ -168,9 +168,23 @@ if [[ -f /workspace/web/package.json ]]; then
       echo "[prisma] seed skipped (RUN_SEED=0)"
     fi
   fi
-  echo "[next] starting dev server (background)"
-  npm run dev &
-  NEXT_PID=$!
+  # NODE_ENV に応じて起動モード切替
+  NODE_ENV="${NODE_ENV:-development}"
+  echo "[next] NODE_ENV=$NODE_ENV"
+  
+  if [[ "$NODE_ENV" == "production" ]]; then
+    echo "[next] building for production..."
+    npm run build
+    
+    echo "[next] starting production server (background)"
+    npm run start &
+    NEXT_PID=$!
+  else
+    echo "[next] starting dev server (background)"
+    npm run dev &
+    NEXT_PID=$!
+  fi
+  
   # Caddy 終了時に Next.js を明示停止 (不要ゾンビ防止)
   trap 'echo "[next] stopping (pid=$NEXT_PID)"; kill $NEXT_PID 2>/dev/null || true' EXIT INT TERM
   popd >/dev/null

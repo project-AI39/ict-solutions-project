@@ -1,7 +1,7 @@
 // app/api/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { signToken } from "@/lib/auth";
 
 const prisma = new PrismaClient();

@@ -33,17 +33,15 @@ async function handleChangeEmail(req: NextRequest) {
             data: { email: raw },
         });
 
-        return NextResponse.json({ ok: true });
-    } catch (e: any) {
-        // unique 制約違反
-        if (e?.code === "P2002") {
-            return NextResponse.json(
-                { message: "このメールアドレスは既に使用されています" },
-                { status: 409 }
-            );
-        }
-
-        console.error("POST/PATCH /api/users/change-email failed:", e);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    // unique 制約違反
+    if (typeof e === 'object' && e !== null && 'code' in e && e.code === "P2002") {
+      return NextResponse.json(
+        { message: "このメールアドレスは既に使用されています" },
+        { status: 409 }
+      );
+    }        console.error("POST/PATCH /api/users/change-email failed:", e);
         return NextResponse.json(
             { message: "メールアドレスの変更に失敗しました" },
             { status: 500 }

@@ -28,8 +28,8 @@ export async function PATCH(req: NextRequest) {
       data: { username: username.trim().normalize("NFKC") },
     });
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    if (e?.code === "P2002") {
+  } catch (e) {
+    if (typeof e === 'object' && e !== null && 'code' in e && e.code === "P2002") {
       return NextResponse.json({ message: "ユーザー名は既に使われています" }, { status: 409 });
     }
     console.error("PATCH /api/users/me failed:", e);
