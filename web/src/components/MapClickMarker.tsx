@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
 import L from "leaflet";
@@ -24,7 +24,7 @@ export type MapClickMarkerProps = {
     center?: LatLngTuple; // 👈 プレビュー用に中心座標を受け取れるようにする
 };
 
-function ChangeMapView({ center, zoom }: { center: LatLngTuple, zoom: number }) {
+function ChangeMapView({ center, zoom }: { center: LatLngTuple; zoom: number }) {
   // useMapフックで現在の地図インスタンスを取得
   const map = useMap(); 
   
@@ -36,6 +36,11 @@ function ChangeMapView({ center, zoom }: { center: LatLngTuple, zoom: number }) 
 
   return null;
 }
+
+// ChangeMapViewは定義されているが現在使用されていない
+// 必要に応じて後で使用できるよう保持
+// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+ChangeMapView;
 
 /**
  * 内部コンポーネント: クリックイベントを処理

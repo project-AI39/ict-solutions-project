@@ -21,16 +21,6 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
-  {
-    rules: {
-      // Warningをerrorに変えない（ビルドを止めない）
-      "@typescript-eslint/no-unused-vars": "warn",
-      "@typescript-eslint/no-explicit-any": "error", // anyはエラーのまま
-      "@next/next/no-html-link-for-pages": "error",
-      "@next/next/no-img-element": "warn",
-      "react-hooks/exhaustive-deps": "warn",
-    },
-  },
 ];
 
 export default eslintConfig;

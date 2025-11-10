@@ -56,7 +56,7 @@ export default function SearchPageMUI() {
   const [sort, setSort] = useState<"distance" | "time" | "new">("distance");
   const [hidePast, setHidePast] = useState<boolean>(false);
   const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>(Tokyo);
+  const [mapCenter] = useState<[number, number]>(Tokyo);
   const [isSearching, setIsSearching] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(true); // 初期は表示、検索成功後に閉じる
 
@@ -146,7 +146,7 @@ export default function SearchPageMUI() {
         const latlng: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setCurrentPos(latlng);
       },
-      (err) => {
+      () => {
         if (mounted) {
           setCurrentPos(Tokyo);
         }
@@ -157,7 +157,7 @@ export default function SearchPageMUI() {
     return () => {
       mounted = false;
     };
-  }, [keyword, dateFrom, dateTo]);
+  }, [keyword, dateFrom, dateTo, isSearching]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflowX: "hidden" }}>

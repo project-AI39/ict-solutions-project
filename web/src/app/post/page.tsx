@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import { useState, useMemo, useCallback, useEffect} from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import type { LatLngTuple } from 'leaflet'; 
 import type { MapClickMarkerProps } from '@/components/MapClickMarker'; 
 import { useRouter } from 'next/navigation';
@@ -53,11 +53,12 @@ export default function PostEventPage() {
 
   const [mapCenter, setMapCenter] = useState<LatLngTuple | null>(null);
 
-  // フォームデータから現在のLatLngTupleを作成
-  const currentPosition: LatLngTuple | null = 
+  // フォームデータから現在のLatLngTupleを作成（useMemoでメモ化）
+  const currentPosition: LatLngTuple | null = useMemo(() => 
     (formData.latitude !== null && formData.longitude !== null) 
     ? [formData.latitude, formData.longitude] 
-    : null;
+    : null
+  , [formData.latitude, formData.longitude]);
 
   useEffect(() => {
     // ステップ2（地図表示）の時、かつ、まだ中心が設定されていなければ実行
@@ -329,6 +330,7 @@ export default function PostEventPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
                   </button>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={URL.createObjectURL(formData.image)} 
                     alt="選択された画像のプレビュー" 
@@ -355,6 +357,7 @@ export default function PostEventPage() {
               
               {formData.image ? (
                 <div className="mb-4 border rounded-lg overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={URL.createObjectURL(formData.image)} 
                     alt="投稿プレビュー" 

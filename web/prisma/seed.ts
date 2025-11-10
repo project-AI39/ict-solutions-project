@@ -575,11 +575,11 @@ async function seed() {
   // participations
   for (const p of PARTICIPATIONS) {
     try {
-      // Prisma クライアントの型が未生成の可能性があるため any 経由で作成
-      await (prisma as any).eventParticipant.create({ data: { userId: p.userId, eventId: p.eventId } });
-    } catch (e: any) {
+      // Prisma クライアントの型が未生成の可能性があるため型アサーション経由で作成
+      await (prisma as unknown as { eventParticipant: { create: (args: { data: { userId: string; eventId: string } }) => Promise<unknown> } }).eventParticipant.create({ data: { userId: p.userId, eventId: p.eventId } });
+    } catch (e: unknown) {
       // 重複などは無視して先へ進める
-      if (e?.code === 'P2002') continue;
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') continue;
       throw e;
     }
   }
