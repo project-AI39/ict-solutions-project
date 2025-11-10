@@ -125,19 +125,13 @@ export default function LoginForm() {
           }}
         />
 
-        <Box sx={{ alignSelf: "flex-end", mb: 2 }}>
-          <a href="/forgot-password" style={{ textDecoration: "underline", color: "#1976d2" }}>
-            パスワードをお忘れですか？
-          </a>
-        </Box>
-
         <Button
           type="submit"
           variant="contained"
           color="primary"
           fullWidth
           disabled={loading}
-          sx={{ mb: 2 }}
+          sx={{ mb: 2, mt: 2}}
         >
           {loading ? "ログイン中..." : "ログイン"}
         </Button>
