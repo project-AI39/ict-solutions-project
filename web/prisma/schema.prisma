@@ -10,6 +10,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
+  email     String   @unique @db.VarChar(320)  // 追加（まずは required でOK）
   password  String
   points    Int      @default(0)
   createdAt DateTime @default(now())
