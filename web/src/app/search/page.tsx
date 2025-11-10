@@ -157,7 +157,7 @@ export default function SearchPageMUI() {
     return () => {
       mounted = false;
     };
-  }, [keyword, dateFrom, dateTo, isSearching]);
+  }, [keyword, dateFrom, dateTo, sort, hidePast]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflowX: "hidden" }}>
