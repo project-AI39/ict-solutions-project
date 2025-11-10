@@ -6,12 +6,16 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import ArticleIcon from '@mui/icons-material/Article';
 import GroupIcon from '@mui/icons-material/Group';
+import StarIcon from '@mui/icons-material/Star';
 import Paper from "@mui/material/Paper";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Link from "next/link";
@@ -38,6 +42,11 @@ export default function UserPage() {
     const [navValue, setNavValue] = useState(3); // index of ユーザー in bottom nav
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [userPoints, setUserPoints] = useState<number>(0);
+    const [pointsToUse, setPointsToUse] = useState<string>('');
+    const [usePointsLoading, setUsePointsLoading] = useState(false);
+    const [usePointsError, setUsePointsError] = useState<string | null>(null);
+    const [usePointsSuccess, setUsePointsSuccess] = useState<string | null>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -57,9 +66,17 @@ export default function UserPage() {
                 }
                 const joinedPostsData = await joinedPostsRes.json();
 
+                // ユーザー情報（ポイント含む）を取得
+                const meRes = await fetch('/api/me', { credentials: 'same-origin' });
+                if (!meRes.ok) {
+                    throw new Error('ユーザー情報の取得に失敗しました');
+                }
+                const meData = await meRes.json();
+
                 if (mounted) {
                     setMyPosts(myPostsData);
                     setJoinedPosts(joinedPostsData);
+                    setUserPoints(meData.user?.points || 0);
                     setLoading(false);
                 }
             } catch (err: any) {
@@ -71,6 +88,46 @@ export default function UserPage() {
         })();
         return () => { mounted = false; };
     }, []);
+
+    const handleUsePoints = async () => {
+        setUsePointsError(null);
+        setUsePointsSuccess(null);
+        
+        const points = parseInt(pointsToUse, 10);
+        if (!points || points <= 0) {
+            setUsePointsError('有効なポイント数を入力してください');
+            return;
+        }
+
+        if (points > userPoints) {
+            setUsePointsError('ポイントが不足しています');
+            return;
+        }
+
+        setUsePointsLoading(true);
+        try {
+            const res = await fetch('/api/me/use-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ points }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'ポイントの使用に失敗しました');
+            }
+
+            setUserPoints(data.remainingPoints);
+            setPointsToUse('');
+            setUsePointsSuccess(`${data.usedPoints}ポイントを使用しました！`);
+        } catch (err: any) {
+            setUsePointsError(err.message || 'ポイントの使用に失敗しました');
+        } finally {
+            setUsePointsLoading(false);
+        }
+    };
 
     return (
         <Box sx={{ width: "100%", height: "100vh", position: "relative", overflow: "hidden" }}>
@@ -94,6 +151,13 @@ export default function UserPage() {
                             label="参加した投稿"
                             id="user-tab-1"
                             icon={<GroupIcon fontSize="small" />}
+                            iconPosition="start"
+                            sx={{ textTransform: "none", minHeight: 40, px: 1 }}
+                        />
+                        <Tab
+                            label="ポイント"
+                            id="user-tab-2"
+                            icon={<StarIcon fontSize="small" />}
                             iconPosition="start"
                             sx={{ textTransform: "none", minHeight: 40, px: 1 }}
                         />
@@ -137,6 +201,59 @@ export default function UserPage() {
                                         ))}
                                     </List>
                                 )}
+                            </TabPanel>
+
+                            <TabPanel value={tab} index={2}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    <Paper elevation={1} sx={{ p: 3, textAlign: 'center' }}>
+                                        <Typography variant="h6" gutterBottom>
+                                            現在のポイント
+                                        </Typography>
+                                        <Typography variant="h3" color="primary" sx={{ fontWeight: 'bold' }}>
+                                            {userPoints}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                            ポイント
+                                        </Typography>
+                                    </Paper>
+
+                                    <Paper elevation={1} sx={{ p: 3 }}>
+                                        <Typography variant="h6" gutterBottom>
+                                            ポイントを使う
+                                        </Typography>
+                                        {usePointsError && (
+                                            <Alert severity="error" sx={{ mb: 2 }}>
+                                                {usePointsError}
+                                            </Alert>
+                                        )}
+                                        {usePointsSuccess && (
+                                            <Alert severity="success" sx={{ mb: 2 }}>
+                                                {usePointsSuccess}
+                                            </Alert>
+                                        )}
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                            <TextField
+                                                label="使用するポイント"
+                                                type="number"
+                                                value={pointsToUse}
+                                                onChange={(e) => setPointsToUse(e.target.value)}
+                                                fullWidth
+                                                InputProps={{ inputProps: { min: 1, max: userPoints } }}
+                                                disabled={usePointsLoading}
+                                            />
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={handleUsePoints}
+                                                disabled={usePointsLoading || !pointsToUse}
+                                                fullWidth
+                                                size="large"
+                                            >
+                                                {usePointsLoading ? '処理中...' : 'ポイントを使う'}
+                                            </Button>
+                                        </Box>
+                                    </Paper>
+                                </Box>
                             </TabPanel>
                         </>
                     )}
