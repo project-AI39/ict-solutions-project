@@ -129,8 +129,9 @@ export default function ParticipateButton({ eventId, eventLat, eventLng, authorI
       const data = await res.json();
       setDone({ awarded: data?.awarded ?? POINTS_PER_JOIN });
       window.dispatchEvent(new CustomEvent("points:updated"));
-    } catch (e: any) {
-      setError(e?.message ?? "参加処理でエラーが発生しました。");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "参加処理でエラーが発生しました。";
+      setError(message);
     } finally {
       setLoading(false);
     }

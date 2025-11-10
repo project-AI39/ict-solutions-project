@@ -19,7 +19,7 @@ const Marker = dynamic(
   { ssr: false }
 );
 
-export function MiniMap({ lat, lng }: { lat: number; lng: number }) {
+export function MiniMap({ lat, lng }: { lat: number | null; lng: number | null }) {
   const [mounted, setMounted] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const prevPos = useRef<{ lat: number; lng: number } | null>(null);
@@ -33,7 +33,7 @@ export function MiniMap({ lat, lng }: { lat: number; lng: number }) {
 
   // 座標が変わったら、一度非表示にして次フレームで再表示（完全再マウント）
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || lat == null || lng == null) return;
     const changed =
       !prevPos.current ||
       prevPos.current.lat !== lat ||

@@ -10,7 +10,19 @@ const MiniMap = dynamic(() => import("./MiniMap").then(m => m.MiniMap), {
   ssr: false,
 });
 
-export function EventCard({ id, title, distance, sdate, fdate, lat, lng, description }) {
+// 型定義を追加
+interface EventCardProps {
+  id: string;
+  title: string;
+  distance: number;
+  sdate: string | Date;
+  fdate: string | Date;
+  lat: number | null;
+  lng: number | null;
+  description?: string | null;
+}
+
+export function EventCard({ id, title, distance, sdate, fdate, lat, lng, description }: EventCardProps) {
   const [showDetail, setShowDetail] = useState(false);
 
   const jpStart = new Date(sdate).toLocaleDateString("ja-JP", {

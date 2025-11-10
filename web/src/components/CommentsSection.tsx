@@ -18,14 +18,14 @@ export default function CommentsSection({ eventId }: { eventId: string }) {
   const [posting, setPosting] = React.useState(false);
 
   // JSONを安全に読む（204 / 空レスポンスでも落ちない）
-  async function safeJson<T = any>(res: Response): Promise<T | null> {
+  async function safeJson<T = unknown>(res: Response): Promise<T | null> {
     const ct = res.headers.get("content-type") || "";
     if (!ct.includes("application/json")) {
       const raw = await res.text(); // 空でもOK
       if (!raw) return null;
-      try { return JSON.parse(raw); } catch { return null; }
+      try { return JSON.parse(raw) as T; } catch { return null; }
     }
-    try { return await res.json(); } catch { return null; }
+    try { return await res.json() as T; } catch { return null; }
   }
 
   const fetchComments = React.useCallback(async () => {
@@ -33,11 +33,12 @@ export default function CommentsSection({ eventId }: { eventId: string }) {
     setError(null);
     try {
       const res = await fetch(`/api/events/${eventId}/comments?take=30`, { credentials: "include" });
-      const data = await safeJson<{ comments: Comment[] }>(res);
-      if (!res.ok) throw new Error(data && (data as any).message || "コメントの取得に失敗しました");
+      const data = await safeJson<{ comments: Comment[]; message?: string }>(res);
+      if (!res.ok) throw new Error(data?.message || "コメントの取得に失敗しました");
       setComments(data?.comments ?? []);   // ★ 0件なら空配列
-    } catch (e: any) {
-      setError(e.message || "読み込みに失敗しました");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "読み込みに失敗しました";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -57,15 +58,16 @@ export default function CommentsSection({ eventId }: { eventId: string }) {
         credentials: "include",
         body: JSON.stringify({ body }),
       });
-      const data = await safeJson<{ comment: Comment }>(res);
-      if (!res.ok) throw new Error(data && (data as any).message || "投稿に失敗しました");
+      const data = await safeJson<{ comment: Comment; message?: string }>(res);
+      if (!res.ok) throw new Error(data?.message || "投稿に失敗しました");
       if (data?.comment) {
         // 新しい順：先頭に追加
         setComments((prev) => [data.comment, ...prev]);
       }
       setText("");
-    } catch (e: any) {
-      alert(e.message || "投稿に失敗しました");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "投稿に失敗しました";
+      alert(message);
     } finally {
       setPosting(false);
     }

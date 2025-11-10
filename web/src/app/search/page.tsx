@@ -39,9 +39,18 @@ const Tokyo: [number, number] = [35.6895, 139.6917];
 
 export default function SearchPageMUI() {
   const [keyword, setKeyword] = useState("");
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Array<{
+    id: string;
+    title: string;
+    distance: number | null;
+    eventstartDay: string;
+    eventfinishDay: string;
+    latitude: number;
+    longitude: number;
+    description?: string | null;
+  }>>([]);
   const [navValue, setNavValue] = useState(1);
-  const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
+  const [selectedRadius, setSelectedRadius] = useState<number | null | "">(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [sort, setSort] = useState<"distance" | "time" | "new">("distance");
@@ -81,18 +90,20 @@ export default function SearchPageMUI() {
     );
   };
 
-  const handleRadiusSelect = (r: number | null) => {
-    if (r !== null && !handleCurrentLocation) {
-      // 1回目だけ現在地取得許可ダイアログ
-      getCurrentLocation();
-      setHasAskedLocation(true);
+  const handleRadiusSelect = (r: number | null | "") => {
+    // 現在地取得が必要な場合は自動で取得
+    if (r !== null && r !== "" && currentPos === null) {
+      handleCurrentLocation();
     }
     setSelectedRadius(r);
   }
 
-  const handleSearch = async (pos?: [number, number], selectedRadius?: number | null) => {
+  const handleSearch = async (pos?: [number, number], radius?: number | null | "") => {
     setIsSearching(true);
     try {
+      // 半径の正規化: 数値ならそのまま、それ以外は999999
+      const normalizedRadius = typeof radius === "number" ? radius : 999999;
+      
       const res = await fetch("/api/searchs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,7 +111,7 @@ export default function SearchPageMUI() {
           keyword,
           lat: pos?.[0] ?? 35.6895,
           lng: pos?.[1] ?? 139.6917,
-          radius: selectedRadius ?? 999999,
+          radius: normalizedRadius,
           dateFrom, // ✅ 追加
           dateTo, // ✅ 追加 
           sort,    // ✅ 追加（"distance" | "time" | "new"）
@@ -199,7 +210,7 @@ export default function SearchPageMUI() {
                   }}
                   sx={{ display: "flex", gap: 1 }}
                 >
-                  <ToggleButton value={null} sx={{ flexShrink: 0 }}>
+                  <ToggleButton value="" sx={{ flexShrink: 0 }}>
                     指定なし
                   </ToggleButton>
                   {[5, 10, 20, 50].map((r) => (
@@ -295,7 +306,6 @@ export default function SearchPageMUI() {
           center={currentPos ?? mapCenter}
           zoom={13}
           markers={events.map((ev) => ({ id: ev.id, position: [ev.latitude, ev.longitude], title: ev.title }))}
-          onClick={(latlng) => setMapCenter([latlng.latitude, latlng.longitude])}
           className="w-full h-full z-10"
         />
 

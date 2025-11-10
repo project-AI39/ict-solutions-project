@@ -174,7 +174,9 @@ export default function SettingsPage() {
         throw new Error("update-failed");
       }
 
-      setProfile({ ...(profile as any), email: trimmed.toLowerCase() });
+      if (profile) {
+        setProfile({ ...profile, email: trimmed.toLowerCase() });
+      }
       setToast({ open: true, msg: "メールアドレスを更新しました", type: "success" });
       setEmailDialogOpen(false);
     } catch {
@@ -245,7 +247,7 @@ export default function SettingsPage() {
   const currentIndex = indexByPath[pathname] ?? 0;
   const [navValue, setNavValue] = React.useState(currentIndex);
   React.useEffect(() => setNavValue(currentIndex), [currentIndex]);
-  const handleNavChange = (_: any, newValue: number) => {
+  const handleNavChange = (_: React.SyntheticEvent, newValue: number) => {
     setNavValue(newValue);
     const to = routes[newValue];
     if (to && to !== pathname) router.push(to);

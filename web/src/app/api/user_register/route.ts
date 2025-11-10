@@ -1,7 +1,7 @@
 // web/src/app/api/user_register/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
