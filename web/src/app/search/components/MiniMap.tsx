@@ -42,7 +42,7 @@ export function MiniMap({ lat, lng }: { lat: number | null; lng: number | null }
     if (changed) {
       prevPos.current = { lat, lng };
       setShowMap(false);
-      const t = setTimeout(() => setShowMap(true), 50); // 1ティック挟む
+      const t = setTimeout(() => setShowMap(true), 1000); // 1ティック挟む
       return () => clearTimeout(t);
     }
   }, [lat, lng, mounted]);
