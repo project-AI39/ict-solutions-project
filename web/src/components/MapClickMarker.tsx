@@ -1,40 +1,34 @@
-// components/MapClickMarker.tsx
-
 "use client";
 
-// 🔽 useMap をインポートに追加
 import { useState, useMemo, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet"; 
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // --- マーカーアイコン設定 (変更なし) ---
 const CDN_BASE = "https://unpkg.com/leaflet@1.9.4/dist/images";
-const iconDefault = L.icon({
+L.Icon.Default.mergeOptions({
     iconRetinaUrl: `${CDN_BASE}/marker-icon-2x.png`,
     iconUrl: `${CDN_BASE}/marker-icon.png`,
     shadowUrl: `${CDN_BASE}/marker-shadow.png`,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
 });
-//L.Marker.prototype.options.icon = iconDefault;
-//const DEFAULT_ICON = new L.Icon.Default();
+const DEFAULT_ICON = new L.Icon.Default();
 // ---
 
+// Propsの型定義を修正
 export type MapClickMarkerProps = {
-    onPositionChange?: (lat: number, lng: number) => void;
+    onPositionChange?: (lat: number, lng: number) => void; // 👈 任意に変更
     currentPosition: LatLngTuple | null; 
-    readOnly?: boolean;
-    center?: LatLngTuple; 
+    readOnly?: boolean; // 👈 読み取り専用フラグを追加
+    center?: LatLngTuple; // 👈 プレビュー用に中心座標を受け取れるようにする
 };
 
-// 🔽 外部から渡された center の変更を検知して地図を移動させるコンポーネント 🔽
 function ChangeMapView({ center, zoom }: { center: LatLngTuple, zoom: number }) {
+  // useMapフックで現在の地図インスタンスを取得
   const map = useMap(); 
   
+  // center または zoom が変更されたら地図を移動
   useEffect(() => {
     // flyToを使うことで、現在地や新しいピンの位置にスムーズに移動します
     map.flyTo(center, zoom);
@@ -42,37 +36,38 @@ function ChangeMapView({ center, zoom }: { center: LatLngTuple, zoom: number }) 
 
   return null;
 }
-// 🔼 追加ここまで 🔼
 
 /**
  * 内部コンポーネント: クリックイベントを処理
  */
-// 🔽 --- ClickableMarker を修正 --- 🔽
-function ClickableMarker({ onPositionChange, readOnly }: Pick<MapClickMarkerProps, 'onPositionChange' | 'readOnly'>) {
-    
+function ClickableMarker({ onPositionChange, currentPosition, readOnly }: Omit<MapClickMarkerProps, 'center'>) {
+    const position = currentPosition;
+
     useMapEvents({
         click(e) {
+            // 読み取り専用時、またはコールバックが無い場合は何もしない
             if (readOnly || !onPositionChange) return; 
 
             const { lat, lng } = e.latlng;
-            
-            // 🔽 --- これが最重要 --- 🔽
-            // ピンの位置を更新するために、親コンポーネント(post/page.tsx)の
-            // handleMapPositionChange を呼び出す
+            console.log("👉 [MapClickMarker] Map Clicked! New Position:", lat, lng);
             onPositionChange(lat, lng); 
-            // 🔼 --- 修正ここまで --- 🔼
-
-            // マップの中心を新しいピンの位置にアニメーションで移動
             e.target.flyTo(e.latlng, e.target.getZoom());
         },
     });
 
-    // このコンポーネントはマーカーを描画する必要はない
-    // マーカーは MapClickMarker が担当する
-    return null;
-}
-// 🔼 --- 修正ここまで --- 🔼
+    if (position === null) {
+        return null;
+    }
 
+    // 座標が設定されていればマーカーを表示
+    return (
+        <Marker position={position} icon={DEFAULT_ICON}>
+            <Popup>
+                {readOnly ? "イベント開催場所" : "場所を選択しました"}
+            </Popup>
+        </Marker>
+    );
+}
 
 /**
  * メインコンポーネント: 地図コンテナを描画
@@ -80,19 +75,20 @@ function ClickableMarker({ onPositionChange, readOnly }: Pick<MapClickMarkerProp
 export default function MapClickMarker({ 
     onPositionChange, 
     currentPosition, 
-    readOnly = false,
+    readOnly = false, // デフォルトはfalse
     center 
 }: MapClickMarkerProps) {
     
     const defaultCenter: LatLngTuple = useMemo(() => [35.681236, 139.767125], []);
     
+    // プレビュー時は指定されたcenterかピンの位置を中央に、それ以外はデフォルト位置
     const mapCenter = center ?? (currentPosition ?? defaultCenter);
-    const zoomLevel = readOnly ? 15 : 13;
 
     return (
         <MapContainer 
             center={mapCenter} 
-            zoom={zoomLevel} 
+            zoom={readOnly ? 15 : 13} // プレビュー時は少しズーム
+            // 読み取り専用時はすべての操作を無効化
             scrollWheelZoom={!readOnly}
             dragging={!readOnly}
             zoomControl={!readOnly}
@@ -100,30 +96,15 @@ export default function MapClickMarker({
             touchZoom={!readOnly}
             style={{ height: '100%', width: '100%' }}
         >
-            <ChangeMapView center={mapCenter} zoom={zoomLevel} />
-            
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            
-            {/* 🔽 ClickableMarker を呼び出す (onPositionChange がある場合のみ) 🔽 */}
-            {onPositionChange && (
-                <ClickableMarker 
-                    onPositionChange={onPositionChange} 
-                    readOnly={readOnly}
-                />
-            )}
-            
-            {/* 🔽 マーカーの描画はここで行う 🔽 */}
-            {currentPosition && (
-                <Marker position={currentPosition} icon={iconDefault}>
-                    <Popup>
-                        {readOnly ? "イベント開催場所" : "場所を選択しました"}
-                    </Popup>
-                </Marker>
-            )}
-            {/* 🔼 --- 修正ここまで --- 🔼 */}
+            <ClickableMarker 
+                onPositionChange={onPositionChange} 
+                currentPosition={currentPosition} 
+                readOnly={readOnly}
+            />
         </MapContainer>
     );
 }

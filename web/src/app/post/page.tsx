@@ -1,8 +1,7 @@
 "use client";
 
-// 🔽 useEffect と TextField, Button をインポート
 import dynamic from 'next/dynamic';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect} from 'react';
 import type { LatLngTuple } from 'leaflet'; 
 import type { MapClickMarkerProps } from '@/components/MapClickMarker'; 
 import { useRouter } from 'next/navigation';
@@ -12,9 +11,6 @@ import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Paper from '@mui/material/Paper';
 import Link from 'next/link';
-// 🔽 検索フォーム用に TextField と Button をインポート
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button'; 
 
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import HomeIcon from "@mui/icons-material/Home";
@@ -30,20 +26,15 @@ const DynamicClickableMap = dynamic(() => import('@/components/MapClickMarker'),
   loading: () => <p className="text-gray-500">地図を読み込み中...</p>,
 }) as React.ComponentType<MapClickMarkerProps>; 
 
-// --- 🔽 検索結果の型定義 🔽 ---
-type NominatimResult = {
-  lat: string;
-  lon: string;
-  display_name: string;
-};
-// --- 🔼 追加ここまで 🔼 ---
-
 // =========================================================
 // イベント投稿ページのメインコンポーネント
 // =========================================================
 export default function PostEventPage() {
   const router = useRouter();
+  // 1. ステップ管理用のステート
   const [step, setStep] = useState(1);
+
+  // 2. フォームデータを一元管理（imageを追加）
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -53,58 +44,49 @@ export default function PostEventPage() {
     longitude: null as number | null,
     image: null as File | null, 
   });
+
+  // 3. 読み込み中ステートを追加
   const [isLoading, setIsLoading] = useState(false);
-  const [navValue, setNavValue] = useState(2); 
-  const navHeight = 64; 
 
-  // --- 🔽 地図の中心と検索用のステートを追加 🔽 ---
-  const [mapCenter, setMapCenter] = useState<LatLngTuple | null>(null); // 地図の中心
-  const [searchQuery, setSearchQuery] = useState(''); // 検索クエリ
-  const [isSearching, setIsSearching] = useState(false); // 検索中フラグ
-  // --- 🔼 追加ここまで 🔼 ---
+  const [navValue, setNavValue] = useState(2); // 2 = 投稿 (0から数えて)
+  const navHeight = 64; // px
 
+  const [mapCenter, setMapCenter] = useState<LatLngTuple | null>(null);
 
+  // フォームデータから現在のLatLngTupleを作成
   const currentPosition: LatLngTuple | null = 
     (formData.latitude !== null && formData.longitude !== null) 
     ? [formData.latitude, formData.longitude] 
     : null;
 
-  // --- 🔽 ステップ2の時に現在地を取得するロジック 🔽 ---
   useEffect(() => {
-    // ステップ2（地図表示）の時だけ実行
+    // ステップ2（地図表示）の時、かつ、まだ中心が設定されていなければ実行
     if (step === 2 && mapCenter === null) {
       // 1. ピンがすでにあればそこを中央に
       if (currentPosition) {
         setMapCenter(currentPosition);
       } 
-      // 2. ピンがなければ現在地を取得
+      // 2. ピンがなければ現在地を取得（Geolocation APIを使用）
       else if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            
-            setMapCenter([lat, lng]); // 1. 地図を現在地に移動
-            
-            // 🔽 2. 現在地に自動でピンを刺す (これが足りなかった)
-            handleMapPositionChange(lat, lng); 
-            // 🔼 --- 修正ここまで --- 🔼
+            // 取得成功: 現在地を地図の中心に設定
+            setMapCenter([pos.coords.latitude, pos.coords.longitude]);
           },
           (err) => {
             console.warn("現在地の取得に失敗:", err);
+            // 失敗: 東京駅（デフォルト）を地図の中心に設定
             setMapCenter([35.681236, 139.767125]); 
           }
         );
-      }
-      // 3. Geolocation非対応なら東京駅
+      } 
+      // 3. Geolocation非対応: 東京駅（デフォルト）
       else {
         console.warn("Geolocation非対応");
         setMapCenter([35.681236, 139.767125]);
       }
     }
-  }, [step, currentPosition, mapCenter]); // 👈 step, currentPosition, mapCenter に依存
-  // --- 🔼 追加ここまで 🔼 ---
-
+  }, [step, currentPosition, mapCenter]);  
 
   // --- ステップ操作ハンドラ ---
   const handleNext = () => setStep(prev => prev + 1);
@@ -114,108 +96,94 @@ export default function PostEventPage() {
   const handleMapPositionChange = useCallback((lat: number, lng: number) => {
     setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
   }, []);
+
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { setFormData(prev => ({ ...prev, image: file })); }
-    else { setFormData(prev => ({ ...prev, image: null })); }
-  };
-  const handleRemoveImage = useCallback(() => {
-    setFormData(prev => ({ ...prev, image: null }));
-    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
-    if (fileInput) { fileInput.value = ""; }
-  }, []);
-
-  // --- 🔽 場所検索ハンドラを追加 🔽 ---
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim() || isSearching) return;
-
-    setIsSearching(true);
-    try {
-      // Nominatim (OpenStreetMapの無料ジオコーディングAPI) を使います
-      // ※注意: APIの利用規約に従い、短時間に大量のリクエストを送らないでください
-      const params = new URLSearchParams({
-        q: searchQuery,
-        format: 'json',
-        limit: '1'
-      });
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error('検索に失敗しました');
-      }
-
-      const results: NominatimResult[] = await response.json();
-
-      if (results.length > 0) {
-        const firstResult = results[0];
-        const lat = parseFloat(firstResult.lat);
-        const lng = parseFloat(firstResult.lon);
-        // 地図の中心を検索結果に移動
-        setMapCenter([lat, lng]); 
-        // ピンもそこに移動（ユーザーが微調整できるように）
-        handleMapPositionChange(lat, lng); 
-      } else {
-        alert('場所が見つかりませんでした。');
-      }
-
-    } catch (error) {
-      console.error("検索エラー:", error);
-      alert('場所の検索中にエラーが発生しました。');
-    } finally {
-      setIsSearching(false);
+    if (file) {
+      setFormData(prev => ({ ...prev, image: file }));
+    } else {
+      setFormData(prev => ({ ...prev, image: null }));
     }
   };
-  // --- 🔼 追加ここまで 🔼 ---
 
-  // ... (handleSubmit は変更なし) ...
+  const handleRemoveImage = useCallback(() => {
+    setFormData(prev => ({ ...prev, image: null }));
+    // ファイル入力の値をリセット
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = ""; // 値をクリア
+    }
+  }, []); // 依存配列は空でOK
+
+  // =========================================================
+  // --- 最終送信ハンドラ (API呼び出し) ---
+  // =========================================================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 既に読み込み中なら何もしない
     if (isLoading) return;
-    
-    // 必須項目をチェック (description は任意なので除外)
+
+    // フォームバリデーション
     if (!formData.title || !formData.latitude || !formData.longitude || !formData.eventstartDay || !formData.eventfinishDay) {
+        // descriptionは任意なのでバリデーションから除外
         alert("必須項目（タイトル、開始日、終了日、場所）が入力されていません。");
-        
-        // どのステップに戻るか判定
-        if (!formData.title || !formData.eventstartDay || !formData.eventfinishDay) {
-          setStep(1);
-        } else if (!formData.latitude) {
-          setStep(2);
-        }
+        if (!formData.title) setStep(1);
+        else if (!formData.latitude) setStep(2);
         return;
     }
 
+    // 読み込み開始
     setIsLoading(true);
+
+    // 1. データを「FormData」（小包）に詰める
     const dataToSend = new FormData();
     dataToSend.append('title', formData.title);
-    dataToSend.append('description', formData.description || ''); // 任意項目
-    dataToSend.append('eventstartDay', formData.eventstartDay);
-    dataToSend.append('eventfinishDay', formData.eventfinishDay);
+    // descriptionは任意（''の場合もある）
+    dataToSend.append('description', formData.description || ''); 
+    dataToSend.append('eventstartDay',formData.eventstartDay);
+    dataToSend.append('eventfinishDay',formData.eventfinishDay);
     dataToSend.append('latitude', String(formData.latitude));
     dataToSend.append('longitude', String(formData.longitude));
+
+    // 画像ファイルが存在する場合のみ、小包に入れる
     if (formData.image) {
       dataToSend.append('image', formData.image);
     }
+
     try {
+      // 2. APIエンドポイントにデータをPOSTで送信
       const response = await fetch('/api/events', {
         method: 'POST',
-        body: dataToSend, 
+        // ⚠️ 'Content-Type' ヘッダーは削除する！
+        // (ブラウザがFormDataを使うと自動で正しいヘッダーを付けてくれます)
+        body: dataToSend, // 👈 JSON.stringify ではなく FormData をそのまま渡す
       });
+
       if (!response.ok) {
+        // サーバーがエラーを返した場合
         const errorData = await response.json();
         throw new Error(errorData.message || '投稿に失敗しました');
       }
-      alert('イベントを投稿しました！ホーム画面に戻ります。');
+
+      // 3. 成功した場合
+      const newEvent = await response.json();
+      console.log('投稿成功:', newEvent);
+      alert('イベントを投稿しました！');
+      
+      // フォームを初期化して最初のステップに戻る
       setFormData({
-          title: '', description: '', eventstartDay: '', eventfinishDay: '',
-          latitude: null, longitude: null, image: null,
+          title: '', description: '', eventstartDay: '', eventfinishDay: '', latitude: null, longitude: null, image: null,
       });
+      //ホーム画面に遷移
       router.push('/');
+
     } catch (error) {
+      // 4. ネットワークエラーやその他のエラー
       console.error('送信エラー:', error);
       if (error instanceof Error) {
         alert(`エラー: ${error.message}`);
@@ -223,97 +191,90 @@ export default function PostEventPage() {
         alert('投稿中に不明なエラーが発生しました');
       }
     } finally {
+      // 5. 読み込み完了
       setIsLoading(false);
     }
   };
+  
 
   return (
+    // ページ全体をフッター分だけパディング
     <Box sx={{ pb: `${navHeight}px`, minHeight: '100vh', bgcolor: 'grey.100' }}>
       
+      {/* 既存のフォームコンテナ */}
       <div className="container mx-auto p-4 max-w-2xl">
         <div className="space-y-6 bg-white p-6 rounded-lg shadow-lg">
           
-          {/* --- ステップ 1: イベント情報入力 (変更なし) ---  */}
+          {/* --- ステップ 1: イベント情報入力 ---  */}
           {step === 1 && (
             <form onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
-              {/* ... (内容は変更なし) ... */}
               <h1 className="text-3xl font-bold mb-6 text-gray-800">イベント情報入力</h1>
-              {/* title */}
+              
               <div className="mb-4">
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700">イベント名</label>
-                <input type="text" name="title" id="title" value={formData.title} onChange={handleFormChange} placeholder="例: ハッカソン 2025" required className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"/>
-              </div>
-              {/* eventstartDay */}
-              <div>
-                <label htmlFor="eventstartDay" className="block text-sm font-medium text-gray-700">イベント開始日</label>
-                <input type="date" name="eventstartDay" id="eventstartDay" value={formData.eventstartDay} onChange={handleFormChange} required className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"/>
-              </div>
-              {/* eventfinishDay */}
-              <div className="mb-4">
-                <label htmlFor="eventfinishDay" className="block text-sm font-medium text-gray-700">イベント終了日</label>
-                <input type="date" name="eventfinishDay" id="eventfinishDay" value={formData.eventfinishDay} onChange={handleFormChange} required className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"/>
-              </div>
-              {/* description */}
-              <div className="mb-6">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">詳細</label>
-                <textarea 
-                  name="description" 
-                  id="description" 
-                  rows={4} 
-                  value={formData.description} 
-                  onChange={handleFormChange} 
-                  placeholder="例: 有意義な時間を過ごすことができました。(任意)" 
+                <input
+                  type="text" name="title" id="title"
+                  value={formData.title} onChange={handleFormChange}
+                  placeholder="例: ハッカソン 2025" required
                   className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  // required を削除
                 />
               </div>
-              <button type="submit" className="w-full py-3 px-4 rounded-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+
+              <div>
+                <label htmlFor="eventstartDay" className="block text-sm font-medium text-gray-700">イベント開始日</label>
+                <input
+                  type="date" name="eventstartDay" id="eventstartDay"
+                  value={formData.eventstartDay} onChange={handleFormChange}
+                  required
+                  className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="eventfinishDay" className="block text-sm font-medium text-gray-700">イベント終了日</label>
+                <input
+                  type="date" name="eventfinishDay" id="eventfinishDay"
+                  value={formData.eventfinishDay} onChange={handleFormChange} 
+                  required
+                  className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="mb-6">
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">詳細</label>
+                <textarea
+                  name="description" id="description" rows={4}
+                  value={formData.description} onChange={handleFormChange}
+                  placeholder="例: 有意義な時間を過ごすことができました。(任意)"
+                  className="mt-1 block w-full border border-gray-300 p-3 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              
+              <button
+                type="submit"
+                className="w-full py-3 px-4 rounded-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+              >
                 次へ (場所を選択)
               </button>
             </form>
           )}
 
-          {/* --- 🔽 ステップ 2: 地図で場所を選択 (修正) 🔽 --- */}
+          {/* --- ステップ 2: 地図で場所を選択 --- */}
           {step === 2 && (
             <div>
               <h1 className="text-3xl font-bold mb-6 text-gray-800">開催場所を選択</h1>
-
-              {/* --- 検索フォームを追加 --- */}
-              <Box component="form" onSubmit={handleSearch} sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <TextField
-                  label="場所名や住所で検索"
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  disabled={isSearching}
-                />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={isSearching || !searchQuery.trim()}
-                  sx={{ px: 3 }}
-                >
-                  {isSearching ? '検索中...' : '検索'}
-                </Button>
-              </Box>
-              {/* --- 追加ここまで --- */}
-
               <p className="text-sm text-gray-600 mb-4">地図をクリックしてピンを配置してください。</p>
               
               <div style={{ height: '400px', width: '100%' }} className="rounded-md overflow-hidden border border-gray-300">
-                {/* 🔽 mapCenter が null の間はローディング表示 🔽 */}
                 {!mapCenter ? (
-                  <p className="text-gray-500">現在地を取得中...</p>
+                  <p className="text-gray-500 p-4">現在地を取得中...</p>
                 ) : (
                   <DynamicClickableMap 
                     onPositionChange={handleMapPositionChange} 
                     currentPosition={currentPosition}
-                    center={mapCenter} // 👈 取得した mapCenter を渡す
+                    center={mapCenter} // 👈 取得した現在地またはデフォルト位置を渡す
                   />
                 )}
-                {/* 🔼 修正ここまで 🔼 */}
               </div>
               
               {currentPosition && (
@@ -336,9 +297,8 @@ export default function PostEventPage() {
               </div>
             </div>
           )}
-          {/* 🔼 --- 修正ここまで --- 🔼 */}
 
-          {/* --- ステップ 3: 写真追加 (変更なし) ---  */}
+          {/* --- ステップ 3: 写真追加 ---  */}
           {step === 3 && (
             <div>
               <h1 className="text-3xl font-bold mb-6 text-gray-800">写真を追加</h1>
@@ -388,7 +348,7 @@ export default function PostEventPage() {
             </div>
           )}
 
-          {/* --- ステップ 4: プレビュー・投稿確認 (変更なし) --- */}
+          {/* --- ステップ 4: プレビュー・投稿確認 --- */}
           {step === 4 && (
             <form onSubmit={handleSubmit}>
               <h1 className="text-3xl font-bold mb-6 text-gray-800">投稿プレビュー</h1>
@@ -448,13 +408,14 @@ export default function PostEventPage() {
         </div>
       </div>
 
-      {/* --- Bottom navigation (変更なし) --- */}
+      {/* --- 🔽 Bottom navigation (ホームページからコピー) 🔽 --- */}
       <Box sx={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1200 }}>
         <Paper elevation={8} sx={{ position: "relative" }}>
           <BottomNavigation
             showLabels
-            value={navValue} 
+            value={navValue} // 👈 投稿ページなので '2' (投稿) をアクティブに
             onChange={(event, newValue) => {
+              // ページ遷移はLinkコンポーネントが行うので、ここではステート更新のみ
               setNavValue(newValue);
             }}
             sx={{ height: navHeight }}
@@ -467,6 +428,7 @@ export default function PostEventPage() {
           </BottomNavigation>
         </Paper>
       </Box>
+      {/* --- 🔼 追加ここまで 🔼 --- */}
 
     </Box>
   );
