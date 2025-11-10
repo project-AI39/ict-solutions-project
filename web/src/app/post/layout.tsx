@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   description: "ユーザーがイベントを投稿・共有できるアプリです。",
 };
 
+// ヘッダーとフッターを削除し、コンテンツ（children）のみを返すように修正します。
 export default function PostLayout({
   children,
 }: {
@@ -15,22 +16,12 @@ export default function PostLayout({
 }) {
   return (
     <>
-      <header className="bg-blue-600 text-white p-4 shadow-md">
-        <div className="container mx-auto text-xl font-semibold">
-          イベント投稿
-        </div>
-      </header>
-
       <main
-        className={`container mx-auto p-4 ${inter.className} bg-gray-100 min-h-screen`}
+        className={`container mx-auto p-0 ${inter.className} bg-gray-100 min-h-screen`}
         suppressHydrationWarning
       >
         {children}
       </main>
-
-      <footer className="bg-gray-200 text-center py-4 mt-8 text-sm text-gray-600">
-        © 2025 まいぞーん
-      </footer>
     </>
   );
 }
